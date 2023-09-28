@@ -1,6 +1,6 @@
 //const config = require('config.js');
 var apiHost = `api.loons.vtecostudies.org`;
-apiHost = `localhost:4000`;
+//apiHost = `localhost:4000`;
 export async function fetchLoonWatch(searchTerm) {
     const url = `http://${apiHost}/loonwatch?${searchTerm}`;
     let enc = encodeURI(url);

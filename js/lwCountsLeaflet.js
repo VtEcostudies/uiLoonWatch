@@ -7,6 +7,7 @@ import { getWikiPage } from '../VAL_Web_Utilities/js/wikiPageData.js';
 import { fetchLoonWatch, fetchWaterBody,fetchOccupied, fetchSurveyed } from './loonWatchData.js';
 var uiHost = `http://loons.vtecostudies.org`;
 uiHost = `http://localhost:8002`;
+uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
 var vceCenter = [43.6962, -72.3197]; //VCE coordinates
 var vtCenter = [43.916944, -72.668056]; //VT geo center, downtown Randolph
