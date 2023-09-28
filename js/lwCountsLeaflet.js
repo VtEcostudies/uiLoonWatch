@@ -4,46 +4,30 @@
 /*
 import { getWikiPage } from '../VAL_Web_Utilities/js/wikiPageData.js';
 */
-import { fetchLoonWatchData, fetchWaterBody } from './loonWatchData.js';
-
+import { fetchLoonWatch, fetchWaterBody,fetchOccupied, fetchSurveyed } from './loonWatchData.js';
+var uiHost = `http://loons.vtecostudies.org`;
+uiHost = `http://localhost:8002`;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
 var vceCenter = [43.6962, -72.3197]; //VCE coordinates
 var vtCenter = [43.916944, -72.668056]; //VT geo center, downtown Randolph
 var vtAltCtr = [43.858297, -72.446594]; //VT border center for the speciespage view, where px bounds are small and map is zoomed to fit
 var zoomLevel = 8;
 var zoomCenter = vtCenter;
-var cmGroup = {}; //object of layerGroups of different species' markers grouped into layers
-var cmCount = {}; //a global counter for cmLayer array-objects across mutiple species
-var cmTotal = {}; //a global total for cmLayer counts across species
-var cgColor = {}; //object of colors for separate species layers
-var cgShape = {}; //object of colors for separate species layers
-var cgColors = {0:"red",1:"blue",2:"green",3:"yellow",4:"orange",5:"purple",6:"cyan",7:"grey",8:"violet",9:"greenyellow"};
-var cgShapes = {0:"round",1:"square",2:"triangle",3:"diamond",4:"star"};//,5:"oval"};
-var colrIndx = 0;
-var shapIndx = 0;
 var cmRadius = zoomLevel/2;
 var loonMap = {};
 var basemapLayerControl = false;
 var boundaryLayerControl = false;
-var speciesLayerControl = false;
-var xhrRecsPerPage = 300; //the number of records to load per ajax request.  more is faster.
-var totalRecords = 0;
-var vtWKT = "POLYGON((-73.3427 45.0104,-73.1827 45.0134,-72.7432 45.0153,-72.6100 45.0134,-72.5551 45.0075,-72.4562 45.0090,-72.3113 45.0037,-72.0964 45.0066,-71.9131 45.0070,-71.5636 45.0138,-71.5059 45.0138,-71.5294 44.9748,-71.4949 44.9123,-71.5567 44.8296,-71.6281 44.7506,-71.6061 44.7077,-71.5677 44.6481,-71.5388 44.5817,-71.6006 44.5533,-71.5746 44.5308,-71.5883 44.4955,-71.6556 44.4504,-71.7146 44.4093,-71.7957 44.3975,-71.8163 44.3563,-71.8698 44.3327,-71.9138 44.3484,-71.9865 44.3386,-72.0346 44.3052,-72.0428 44.2432,-72.0662 44.1930,-72.0360 44.1349,-72.0580 44.0698,-72.1101 44.0017,-72.0937 43.9671,-72.1252 43.9088,-72.1733 43.8682,-72.1994 43.7899,-72.1994 43.7899,-72.2392 43.7384,-72.3010 43.7056,-72.3271 43.6391,-72.3436 43.5893,-72.3793 43.5814,-72.3972 43.5027,-72.3807 43.4988,-72.3999 43.4150,-72.4123 43.3601,-72.3903 43.3591,-72.4081 43.3282,-72.3999 43.2762,-72.4370 43.2342,-72.4493 43.1852,-72.4480 43.1311,-72.4507 43.0679,-72.4438 43.0067,-72.4699 42.9846,-72.5276 42.9645,-72.5331 42.8951,-72.5633 42.8639,-72.5098 42.7863,-72.5166 42.7652,-72.4741 42.7541,-72.4590 42.7289,-73.2761 42.7465,-73.2912 42.8025,-73.2850 42.8357,-73.2678 43.0679,-73.2472 43.5022,-73.2561 43.5615,-73.2939 43.5774,-73.3049 43.6271,-73.3557 43.6271,-73.3976 43.5675,-73.4326 43.5883,-73.4285 43.6351,-73.4079 43.6684,-73.3907 43.7031,-73.3516 43.7701,-73.3928 43.8207,-73.3832 43.8533,-73.3969 43.9033,-73.4086 43.9365,-73.4134 43.9795,-73.4381 44.0427,-73.4141 44.1058,-73.3928 44.1921,-73.3427 44.2393,-73.3186 44.2467,-73.3406 44.3484,-73.3385 44.3690,-73.2946 44.4328,-73.3296 44.5367,-73.3832 44.5919,-73.3770 44.6569,-73.3681 44.7477,-73.3317 44.7857,-73.3324 44.8043,-73.3818 44.8398,-73.3564 44.9040,-73.3392 44.9181,-73.3372 44.9643,-73.3537 44.9799,-73.3447 45.0046,-73.3447 45.0109,-73.3426 45.0104,-73.3427 45.0104))";
 var stateLayer = false;
 var countyLayer = false;
 var townLayer = false;
 var bioPhysicalLayer = false;
 var geoGroup = false; //geoJson boundary group for ZIndex management
-var testData = false //flag to enable test data for development and debugging
-var showAccepted = 0; //flag to show taxa by acceptedScientificName instead of scientificName
 var baseMapDefault = null;
-var gadmGidVt = 'USA.46_1';
-var taxaBreakout = false; //flag to break sub-taxa into separate layers with counts.
 var clusterMarkers = false;
 var iconMarkers = false;
 var abortData = false; //make this global so we can abort a data request
-var nameType = 0; //0=scientificName, 1=commonName
 var mapId = 'loonWatchMap'; //this ID must be 
+var defaultBoundaries = {State:0,Counties:0,Towns:0,Lakes:1};
 
 //for standalone use
 function addMap() {
@@ -124,6 +108,7 @@ function addMap() {
 
     loonMap.on("zoomend", e => onZoomEnd(e));
     loonMap.on("overlayadd", e => MapOverlayAdd(e));
+    loonMap.on("overlayremove", e => MapOverlayRem(e));
 }
 
 /*
@@ -131,16 +116,20 @@ function addMap() {
   to the back so that point markers remain clickable, in the foreground.
 */
 function MapOverlayAdd(e) {
-  console.log('MapOverlayAdd', e.layer.options.name);
+  defaultBoundaries[e.layer.options.name] = 1;
+  console.log('MapOverlayAdd', e.layer.options.name, defaultBoundaries);
   if (geoGroup) {
     //if (typeof e.layer.bringToBack === 'function') {e.layer.bringToBack();} //push the just-added layer to back
     geoGroup.eachLayer(layer => {
-      console.log('geoGroup', layer.options.name);
-      //if (layer.options.name != e.layer.options.name) {layer.bringToBack(); //push other overlays to back}
+      //console.log(`geoGroup: ${layer.options.name}`);
       if ('Lakes' == e.layer.options.name) {e.layer.bringToFront();}
       else {e.layer.bringToBack();}
    })
   }
+}
+function MapOverlayRem(e) {
+  defaultBoundaries[e.layer.options.name] = 0;
+  console.log('MapOverlayRem', e.layer.options.name, defaultBoundaries);
 }
 
 function onZoomEnd(e) {
@@ -167,8 +156,9 @@ function zoomLayer(layer) {
 }
 
 // Add boundaries to map and control.
-async function addBoundaries() {
-
+async function addBoundaries(setDef=false) {
+  if (!setDef) {setDef = defaultBoundaries;}
+  
   if (boundaryLayerControl === false) {
       boundaryLayerControl = L.control.layers().addTo(loonMap);
   } else {
@@ -181,13 +171,14 @@ async function addBoundaries() {
 
   try {
       geoGroup = new L.FeatureGroup();
-      addGeoJsonLayer('geojson/Polygon_VT_State_Boundary.geojson', "State", 0, boundaryLayerControl, geoGroup);
-      addGeoJsonLayer('geojson/Polygon_VT_County_Boundaries.geojson', "Counties", 1, boundaryLayerControl, geoGroup);
-      addGeoJsonLayer('geojson/Polygon_VT_Town_Boundaries.geojson', "Towns", 2, boundaryLayerControl, geoGroup);
-      let res = addGeoJsonLayer('geojson/Polygon_VT_Lakes_Inventory.geojson', "Lakes", 3, boundaryLayerControl, geoGroup, true);
-      //addGeoJsonLayer('geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 3, boundaryLayerControl, geoGroup);
-      //addGeoJsonLayer('geojson/surveyblocksWGS84.geojson', "Survey Blocks", 4, boundaryLayerControl, geoGroup);
+      addGeoJsonLayer('geojson/Polygon_VT_State_Boundary.geojson', "State", 0, boundaryLayerControl, geoGroup, setDef.State);
+      addGeoJsonLayer('geojson/Polygon_VT_County_Boundaries.geojson', "Counties", 1, boundaryLayerControl, geoGroup, setDef.Counties);
+      addGeoJsonLayer('geojson/Polygon_VT_Town_Boundaries.geojson', "Towns", 2, boundaryLayerControl, geoGroup, setDef.Towns);
+      let res = addGeoJsonLayer('geojson/Polygon_VT_Lakes_Inventory.geojson', "Lakes", 3, boundaryLayerControl, geoGroup, setDef.Lakes, true);
+      //addGeoJsonLayer('geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 4, boundaryLayerControl, geoGroup);
+      //addGeoJsonLayer('geojson/surveyblocksWGS84.geojson', "Survey Blocks", 5, boundaryLayerControl, geoGroup);
       await res;
+      console.log('addBoundaries res:', res);
       return;
   } catch(err) {
     geoGroup = false;
@@ -196,9 +187,9 @@ async function addBoundaries() {
   }
 }
 
-function addGeoJsonLayer(file="test.geojson", layerName="Test", layerId = 0, layerControl=null, layerGroup=null, addToMap=false) {
+function addGeoJsonLayer(file="test.geojson", layerName="Test", layerId = 0, layerControl=null, layerGroup=null, addToMap=false, toFront=false) {
   var layer = null;
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     loadJSON(file, (data) => {
       layer = L.geoJSON(data, {
           onEachFeature: onEachFeature,
@@ -206,7 +197,8 @@ function addGeoJsonLayer(file="test.geojson", layerName="Test", layerId = 0, lay
           name: layerName, //IMPORTANT: this used to compare layers at ZIndex time
           id: layerId
       });
-      if (addToMap) {layer.addTo(loonMap); layer.bringToBack();}
+      if (addToMap) {layer.addTo(loonMap);}
+      if (toFront) {layer.bringToFront();} else {layer.bringToBack();}
       if (layerControl) {layerControl.addOverlay(layer, layerName);}
       if (layerGroup) {layerGroup.addLayer(layer);}
       resolve(layer);
@@ -300,8 +292,8 @@ function getIntersectingFeatures(e) {
 async function loonLakePopup(lakeName, layer) {
   lakeName = lakeName.replace(';','');
   let search = `exportname=${lakeName}%`; //VT water bodies sometimes mismatch loon exportName
-  let lwJson = await fetchLoonWatchData(search);
-  console.log(`loonLakePopup(${layer.options.name}:${lakeName}) | fetchLoonWatchData:`, lwJson);
+  let lwJson = await fetchLoonWatch(search);
+  console.log(`loonLakePopup(${layer.options.name}:${lakeName}) | fetchLoonWatch:`, lwJson);
   let popHt = `<b><u>${lakeName}</u></b>`;
   if (lwJson.rowCount) {
     popHt += `: ${lwJson.rows[0].locationarea} acres<br>`
@@ -322,7 +314,63 @@ async function loonLakePopup(lakeName, layer) {
     popHt += 'No LoonWatch Surveys found.'
   }
   layer.bindPopup(popHt).openPopup();
-
+}
+/*
+  Lakes, Lakes Surveyed, Lakes Occupied
+*/
+async function loonTownPopup(townName, layer) {
+  let bd = defaultBoundaries;
+  townName = townName.replace(';',''); townName = townName[0].toUpperCase() + townName.substring(1).toLowerCase();
+  let search = `townName=${townName}`;
+  let lwJson = await fetchSurveyed(search);
+  console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchSurveyed:`, lwJson);
+  let popHt = `Town of <u><b>${townName}</b>`;
+  if (lwJson.rowCount) {
+    popHt += ` Lakes Surveyed</u>:<br>`;
+    for (const row of lwJson.rows) {
+      popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> in ${row.surveyed}`;
+      popHt += '<br>';
+    }
+  } else {
+    let wbJson = await fetchWaterBody(`wbtownname=${townName}`);
+    popHt += ` Water Bodies:</u><br>`;
+    if (wbJson.rowCount) {
+      for (const row of wbJson.rows) {
+        popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> (${row.wbofficialname})`;
+        popHt += '<br>';
+      }
+    } else {
+      popHt += `None Found.`;
+    }
+  }
+  layer.bindPopup(popHt).openPopup();
+}
+async function loonCntyPopup(cntyName, layer) {
+  let bd = defaultBoundaries;
+  cntyName = cntyName.replace(';',''); cntyName = cntyName[0].toUpperCase() + cntyName.substring(1).toLowerCase();
+  let search = `countyName=${cntyName}`;
+  let lwJson = await fetchSurveyed(search);
+  console.log(`loonCntyPopup(${layer.options.name}:${cntyName}) | fetchSurveyed:`, lwJson);
+  let popHt = `County of <u><b>${cntyName}</b>`;
+  if (lwJson.rowCount) {
+    popHt += ` Lakes Surveyed</u>:<br>`;
+    for (const row of lwJson.rows) {
+      popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> in ${row.surveyed}`;
+      popHt += '<br>';
+    }
+  } else {
+    let wbJson = await fetchWaterBody(`countyName=${cntyName}`);
+    popHt += ` Water Bodies:</u><br>`;
+    if (wbJson.rowCount) {
+      for (const row of wbJson.rows) {
+        popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> (${row.wbofficialname})`;
+        popHt += '<br>';
+      }
+    } else {
+      popHt += `None Found.`;
+    }
+  }
+  layer.bindPopup(popHt).openPopup();
 }
 
 function onEachFeature(feature, layer) {
@@ -335,8 +383,14 @@ function onEachFeature(feature, layer) {
         //console.log('Layer Click | Layer:', layer);
         console.log('Layer Click | Layer name:', layer.options.name, '| Feature:', feature.properties);
         //getGeoJsonFeatureByGroupNameAndFeatureName(layer.options.name, feature.properties.CNTYNAME || feature.properties.TOWNNAME || feature.properties.LAKEID);
-        if ('Lakes' == layer.options.name) {
+        if ('Lakes' == layer.options.name || feature.properties.LAKEID) {
           loonLakePopup(feature.properties.LAKEID, layer);
+        }
+        if ('Towns' == layer.options.name || feature.properties.TOWNNAME) {
+          loonTownPopup(feature.properties.TOWNNAME, layer);
+        }
+        if ('Counties' == layer.options.name || feature.properties.CNTYNAME) {
+          loonCntyPopup(feature.properties.CNTYNAME, layer);
         }
     });
     layer.on('contextmenu', function (event) {
@@ -489,7 +543,7 @@ async function clusterOnSpiderfied(e) {
     } else {
       list += `<a href="https://gbif.org/occurrence/${o.gbifID}">${o.gbifID}</a>: ${o.canonicalName}, ${moment(o.eventDate).format('YYYY-MM-DD')}, ${o.recordedBy ? o.recordedBy : 'Unknown'}<br>`;
     }
-    })
+  })
 
   var popup = L.popup({
     maxHeight: 200,
@@ -700,16 +754,21 @@ function initMap() {
 
 async function zoomTo(objQry) {
   console.log('zoomTo', objQry);
-  let lakeId = objQry.get('LAKEID')
-  if (lakeId) {
-    let layer = await getGeoJsonGroupFromName('Lakes');
+  let lakeId = objQry.get('LAKEID');
+  let townId = objQry.get('town') || objQry.get('townName') || objQry.get('Town') || objQry.get('TownName');
+  let cntyId = objQry.get('county') || objQry.get('countyName') || objQry.get('County') || objQry.get('CountyName');
+  let typeId; let itemId;
+  if (lakeId) {typeId='Lakes'; itemId=lakeId;}
+  else if (townId) {typeId='Towns'; itemId=townId;}
+  else if (cntyId) {typeId='Counties'; itemId=cntyId;}
+  if (itemId) {
+    let layer = await getGeoJsonGroupFromName(typeId);
     let feature = false;
-    if (layer) {feature = await getGeoJsonFeatureFromLayerByName(layer, lakeId);}
+    if (layer) {feature = await getGeoJsonFeatureFromLayerByName(layer, itemId);}
     console.log('zoomTo | geoJson layer:', layer);
     console.log('zoomTo | geoJson feature:', feature);
     if (feature) {
       zoomLayer(feature);
-      //loonLakePopup(lakeId, layer);
     }
   }
 }
@@ -724,10 +783,10 @@ if (document.getElementById("leafletMap")) {
     console.log('Element leafletMap')
     window.addEventListener("load", async function() {
       console.log('window load event');
-      const objQueryParams = new URLSearchParams(window.location.search);
+      const recQry = new URLSearchParams(window.location.search);
       var strQueryParams = '';
       
-      objQueryParams.forEach((val, key) => {
+      recQry.forEach((val, key) => {
         console.log('Query Param:', key, val);
         let param =  `${key}=${val}`;
         strQueryParams += strQueryParams ? '&' : '';
@@ -737,9 +796,14 @@ if (document.getElementById("leafletMap")) {
       initMap();
       loonMap.options.minZoom = 7;
       loonMap.options.maxZoom = 17;
-      await addBoundaries();
-      if (objQueryParams.size > 0) {
-        zoomTo(objQueryParams);
+      let tb = +recQry.get('townBoundary') || 0;
+      let cb = +recQry.get('countyBoundary') || 0;
+      let sb = +recQry.get('stateBoundary') || 0;
+      let lb = +recQry.get('lakeBoundary') || 1;
+      defaultBoundaries = {State:sb,Counties:cb,Towns:tb,Lakes:lb};
+      await addBoundaries(defaultBoundaries);
+      if (recQry.size > 0) {
+        zoomTo(recQry);
       }
       
       if (document.getElementById("zoomVT")) {

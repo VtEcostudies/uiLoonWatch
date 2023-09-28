@@ -1,35 +1,62 @@
-export function fetchLoonWatchData(searchTerm) {
-    return fetchOne(searchTerm);
-}
-async function fetchOne(searchTerm) {
-    const url = `http://api.loons.vtecostudies.org/loonwatch?${searchTerm}`;
+//const config = require('config.js');
+var apiHost = `api.loons.vtecostudies.org`;
+apiHost = `localhost:4000`;
+export async function fetchLoonWatch(searchTerm) {
+    const url = `http://${apiHost}/loonwatch?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
-        //console.log(`loonWatchData::fetchOne(${searchTerm}) RAW RESULT:`, res);
+        //console.log(`loonWatchData::fetchLoonWatch(${searchTerm}) RAW RESULT:`, res);
         let json = await res.json();
-        console.log(`loonWatchData::fetchOne(${searchTerm}) JSON RESULT:`, json);
+        console.log(`loonWatchData::fetchLoonWatch(${searchTerm}) JSON RESULT:`, json);
         json.query = enc;
         return json;
     } catch (err) {
         err.query = enc;
-        console.log(`loonWatchData::fetchOne(${searchTerm}) ERROR:`, err);
+        console.log(`loonWatchData::fetchLoonWatch(${searchTerm}) ERROR:`, err);
         return new Error(err)
     }
 }
-export async function fetchWaterBody(searchTerm) {
-    const url = `http://api.loons.vtecostudies.org/info/waterBody?${searchTerm}`;
+export async function fetchWaterBody(searchTerm) {return await fetchInfo(0,searchTerm);}
+export async function fetchTown(searchTerm) {return await fetchInfo(1,searchTerm);}
+export async function fetchCounty(searchTerm) {return await fetchInfo(2,searchTerm);}
+async function fetchInfo(item=0, searchTerm) {
+    const items=['waterBody','town','county'];
+    const url = `http://${apiHost}/info/${items[item]}?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
-        //console.log(`loonWatchData::fetchWaterBody(${searchTerm}) RAW RESULT:`, res);
+        //console.log(`loonWatchData::fetchInfo(${searchTerm}) RAW RESULT:`, res);
         let json = await res.json();
-        console.log(`loonWatchData::fetchWaterBody(${searchTerm}) JSON RESULT:`, json);
+        console.log(`loonWatchData::fetchInfo(${searchTerm}) JSON RESULT:`, json);
         json.query = enc;
         return json;
     } catch (err) {
         err.query = enc;
-        console.log(`loonWatchData::fetchWaterBody(${searchTerm}) ERROR:`, err);
+        console.log(`loonWatchData::fetchInfo(${searchTerm}) ERROR:`, err);
+        return new Error(err)
+    }
+}
+export async function fetchSurveyed(searchTerm) {return await fetchStatus(0,searchTerm);}
+export async function fetchOccupied(searchTerm) {return await fetchStatus(1,searchTerm);}
+/*
+    Fetch lake status by Lake/Town/County/Region
+    Status types are 0:surveyed, 1:occupied
+*/
+async function fetchStatus(type=0, searchTerm) {
+    const types = ['surveyed','occupied'];
+    const url =  `http://${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+    let enc = encodeURI(url);
+    try {
+        let res = await fetch(enc);
+        //console.log(`loonWatchData::fetchStatus(${searchTerm}) RAW RESULT:`, res);
+        let json = await res.json();
+        console.log(`loonWatchData::fetchStatus(${searchTerm}) JSON RESULT:`, json);
+        json.query = enc;
+        return json;
+    } catch (err) {
+        err.query = enc;
+        console.log(`loonWatchData::fetchStatus(${searchTerm}) ERROR:`, err);
         return new Error(err)
     }
 }
@@ -40,7 +67,7 @@ export async function loonWatchChart(searchTerm, htmlId) {
     var width = 400 - margin.left - margin.right; var minWidth = width; 
     var height = 300 - margin.top - margin.bottom;
 
-    fetchAll(searchTerm)
+    fetchLoonWatch(searchTerm)
     .then(data => {
         console.log(`loonWatchData data`, data);
         width = data.counts.length * 10 - margin.left - margin.right;
