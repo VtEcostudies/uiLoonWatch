@@ -1,6 +1,7 @@
-//const config = require('config.js');
-var apiHost = `api.loons.vtecostudies.org`;
-//apiHost = `localhost:4000`;
+//const apiHost = require('config.js').apiHost; //`api.loons.vtecostudies.org`;
+import { config } from './config.js';
+const apiHost = config.apiHost;
+
 export async function fetchLoonWatch(searchTerm) {
     const url = `http://${apiHost}/loonwatch?${searchTerm}`;
     let enc = encodeURI(url);
@@ -61,67 +62,119 @@ async function fetchStatus(type=0, searchTerm) {
     }
 }
 
-export async function loonWatchChart(searchTerm, htmlId) {
-    // set dimensions and margins of the graph
-    var margin = {top: 15, right: 30, bottom: 30, left: 40};
-    var width = 400 - margin.left - margin.right; var minWidth = width; 
-    var height = 300 - margin.top - margin.bottom;
+async function fetchCount(type=0, searchTerm) {
+    const types = ['count'];
+    const url =  `http://${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+    let enc = encodeURI(url);
+    try {
+        let res = await fetch(enc);
+        //console.log(`loonWatchData::fetchCount(${searchTerm}) RAW RESULT:`, res);
+        let json = await res.json();
+        console.log(`loonWatchData::fetchCount(${searchTerm}) JSON RESULT:`, json);
+        json.query = enc;
+        return json;
+    } catch (err) {
+        err.query = enc;
+        console.log(`loonWatchData::fetchCount(${searchTerm}) ERROR:`, err);
+        return new Error(err)
+    }
+}
+export function loonWatchCountsChartCreate(searchTerm, htmlId) {
+    let ele = document.getElementById(htmlId);
+    let par = ele.parentElement;
+    ele.remove();
+    ele = document.createElement('div');
+    ele.innerHTML = `<svg id="${htmlId}" width="100%" height="400"></svg>`;
+    par.appendChild(ele);
+    return loonWatchCountsChart(searchTerm, htmlId);
+}
 
-    fetchLoonWatch(searchTerm)
-    .then(data => {
-        console.log(`loonWatchData data`, data);
-        width = data.counts.length * 10 - margin.left - margin.right;
-        width = width >= minWidth ? width : minWidth;
-
-        // append the svg object to the body of the page
-        const svg = d3.select(`#${htmlId}`)
-        .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-        // X axis
-        var x = d3.scaleBand()
-            //.range([ 0, width ])
-            .range([ width, 0 ])
-            .domain(data.counts.map(function(d) { return d.name; }))
-            .padding(0.2);
-            svg.append("g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x))
-            .selectAll("text")
-                //.attr("transform", "translate(-10, 0)rotate(-45)")
-                .attr("transform", "translate(-12, 5)rotate(-90)")
-                .style("text-anchor", "end");
-
-        // Add Y axis
-        var y = d3.scaleLinear()
-            .domain([0, data.max*(1.1)])
-            .range([ height, 0]);
-            svg.append("g")
-            .call(d3.axisLeft(y));
-
-        // Bars
-        svg.selectAll("mybar")
-            .data(data.counts)
-            .enter()
-            .append("rect")
-                .attr("x", function(d) { return x(d.name); })
-                .attr("y", function(d) { return y(d.count); })
-                .attr("width", x.bandwidth())
-                .attr("height", function(d) { return height - y(d.count); })
-                .attr("fill", "#69b3a2")
-
-        svg.append("text")
-            //.attr("x", width / 2 )
-            .attr("x", 150 )
-            .attr("y", 0)
-            .style("text-anchor", "middle")
-            //.text(`${taxonName} Observations by Year`)
-            .text(`GBIF Observations by Year`)
-    })
-    .catch(err => {
-        console.log(`ERROR loonWatchData ERROR: `, err);
+export function loonWatchCountsChart(searchTerm, htmlId) {
+    return new Promise((resolve, reject) => {
+        fetchCount(0, searchTerm)
+            .then(res => {
+                if (res.rowCount) {
+                    loonWatchChart(res.rows, htmlId);
+                    resolve(1);
+                } else {
+                    reject(0);
+                }
+            })
+            .catch(err => {
+                console.log(`ERROR loonWatchCountsChart::fetchCount ERROR: `, err);
+                reject(-1);
+            })
     })
 }
+
+export async function loonWatchChart(data, htmlId) {
+
+    //console.log('loonWatchChart', htmlId, data);
+    const ele = document.getElementById(htmlId);
+    ele.style.padding = "0px 0px 0px 0px";
+    ele.style.margin = "0px 0px 0px 0px";
+    //console.log('loonWatchChart parent element:', ele);
+
+    let filter = data[0].Filter ? data[0].Filter : '';
+
+    // Declare the chart dimensions and margins.
+    var margin = {top: 15, right: 30, bottom: 30, left: 40};
+    var width = 400;// - margin.left - margin.right; var minWidth = width; 
+    var height = 200;// - margin.top - margin.bottom;
+
+    // Declare the x (horizontal position) scale.
+    const x = d3.scaleUtc(d3.extent(data, d => Number(d.year)), [margin.left, width - margin.right]);
+  
+    // Declare the y (vertical position) scale.
+    const y = d3.scaleLinear([0, d3.max(data, d => Number(d.Adults))], [height - margin.bottom, margin.top]);
+  
+    // Declare the line generator.
+    const line = d3.line()
+        .x(d => x(Number(d.year)))
+        .y(d => y(Number(d.Adults)));
+  
+    // Create the SVG container.
+    //const svg = d3.create("svg")
+    // Select the HTML or SVG container. Container must be svg tag like <svg></svg>, or we must call .append("svg") below
+    const svg = d3.select(`#${htmlId}`)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("viewBox", [0, 0, width, height])
+        .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
+  
+    var xtnt = d3.extent(data, d => Number(d.year));
+    console.log('d3.extent:', xtnt, 'd3.scaleUtc:', x);
+    var numYears = xtnt[1] - xtnt[0];
+
+    // Add the x-axis.
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(numYears,'y')
+        //.call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0)
+        );
+  
+    // Add the y-axis, remove the domain line, add grid lines and a label.
+    svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(height / 40))
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick line").clone()
+            .attr("x2", width - margin.left - margin.right)
+            .attr("stroke-opacity", 0.1))
+        .call(g => g.append("text")
+            .attr("x", margin.left)
+            .attr("y", 10)
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "start")
+            .text(`LoonWatch Counts - ${filter}`));
+  
+    // Append a path for the line.
+    svg.append("path")
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 1.5)
+        .attr("d", line(data));
+    
+    //return svg.node();
+  }

@@ -39,7 +39,10 @@
     <h3 class="topMenu">Vermont LoonWatch</h3>
     <hr>
 </header>
-
+<!--
+<button onclick="createBarGraph2()">Bind Data</button>
+<svg id="bargraph2" width="400" height="90" ></svg>
+-->
 <body>
     <div class="container">
         <div id="leafletMap" class="row">
@@ -48,5 +51,23 @@
             </div>
         </div>
     </div>
+    <div>
+        <svg id="chartSvg" width="100%" height="400"></svg>
+    </div>
 </body>
 </html>
+<script> 
+    function createBarGraph2() {
+        var arr = [13, 8, 3, 2, 2];
+        d3.select("#bargraph2")
+          .selectAll("rect")
+          .data(arr)
+          .enter()
+          .append("rect")
+          .attr("height", 10)
+          .attr("width", (d) => d * (400/13))
+          .attr("x", 0)
+          .attr("y", (d, i) => i * 20)
+          .attr("fill", "pink");
+    }
+</script>

@@ -4,10 +4,8 @@
 /*
 import { getWikiPage } from '../VAL_Web_Utilities/js/wikiPageData.js';
 */
-import { fetchLoonWatch, fetchWaterBody,fetchOccupied, fetchSurveyed } from './loonWatchData.js';
-var uiHost = `http://loons.vtecostudies.org`;
-uiHost = `http://localhost:8002`;
-uiHost = location.protocol + "//" + location.host;
+import { fetchLoonWatch, fetchWaterBody,fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+var uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
 var vceCenter = [43.6962, -72.3197]; //VCE coordinates
 var vtCenter = [43.916944, -72.668056]; //VT geo center, downtown Randolph
@@ -29,6 +27,7 @@ var iconMarkers = false;
 var abortData = false; //make this global so we can abort a data request
 var mapId = 'loonWatchMap'; //this ID must be 
 var defaultBoundaries = {State:0,Counties:0,Towns:0,Lakes:1};
+var layPop = false; //global reference to layer-based popup. used to close before opening another?
 
 //for standalone use
 function addMap() {
@@ -289,9 +288,12 @@ function getIntersectingFeatures(e) {
   }
   return html;
 }
+/*
+  Lakes Surveyed (, Lakes Occupied)
+*/
 
 async function loonLakePopup(lakeName, layer) {
-  lakeName = lakeName.replace(';','');
+  lakeName = lakeName.replace(';','').toUpperCase();
   let search = `exportname=${lakeName}%`; //VT water bodies sometimes mismatch loon exportName
   let lwJson = await fetchLoonWatch(search);
   console.log(`loonLakePopup(${layer.options.name}:${lakeName}) | fetchLoonWatch:`, lwJson);
@@ -314,38 +316,46 @@ async function loonLakePopup(lakeName, layer) {
     }
     popHt += 'No LoonWatch Surveys found.'
   }
-  layer.bindPopup(popHt).openPopup();
+  layer.bindPopup(popHt, {minWidth:150}).openPopup();
 }
 /*
-  Lakes, Lakes Surveyed, Lakes Occupied
+  Lakes, Lakes Surveyed (, Lakes Occupied)
 */
 async function loonTownPopup(townName, layer) {
   let bd = defaultBoundaries;
-  townName = townName.replace(';',''); townName = townName[0].toUpperCase() + townName.substring(1).toLowerCase();
+  townName = townName.replace(';',''); 
+  let ta = townName.split(' ');
+  let tf = '';
+  for (const tp of ta) {tf += tp[0].toUpperCase() + tp.substring(1).toLowerCase() + ' ';}
+  townName = tf.trim(); //townName[0].toUpperCase() + townName.substring(1).toLowerCase();
   let search = `townName=${townName}`;
   let lwJson = await fetchSurveyed(search);
   console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchSurveyed:`, lwJson);
-  let popHt = `Town of <u><b>${townName}</b>`;
+  let popHtm = `Town of <u><b>${townName}</b>`;
   if (lwJson.rowCount) {
-    popHt += ` Lakes Surveyed</u>:<br>`;
+    popHtm += ` Lakes Surveyed</u>:<br>`;
     for (const row of lwJson.rows) {
-      popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> in ${row.surveyed}`;
-      popHt += '<br>';
+      popHtm += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> in ${row.surveyed}`;
+      popHtm += '<br>';
     }
   } else {
     let wbJson = await fetchWaterBody(`wbtownname=${townName}`);
-    popHt += ` Water Bodies:</u><br>`;
+    popHtm += ` Water Bodies:</u><br>`;
     if (wbJson.rowCount) {
       for (const row of wbJson.rows) {
-        popHt += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> (${row.wbofficialname})`;
-        popHt += '<br>';
+        popHtm += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> (${row.wbofficialname})`;
+        popHtm += '<br>';
       }
     } else {
-      popHt += `None Found.`;
+      popHtm += `None Found.`;
     }
   }
-  layer.bindPopup(popHt).openPopup();
+  layer.bindPopup(popHtm, {minWidth:150}).openPopup();
 }
+
+/*
+  Lakes, Lakes Surveyed (, Lakes Occupied)
+*/
 async function loonCntyPopup(cntyName, layer) {
   let bd = defaultBoundaries;
   cntyName = cntyName.replace(';',''); cntyName = cntyName[0].toUpperCase() + cntyName.substring(1).toLowerCase();
@@ -374,6 +384,49 @@ async function loonCntyPopup(cntyName, layer) {
   layer.bindPopup(popHt).openPopup();
 }
 
+//type = 'lake', 'town', 'county', '' (empty type means 'state')
+function loonChartPopup(type=false, name=false, layer) {
+  let search = '';
+  if (type && name) {
+    if ('lake'==type) {
+      name = name.replace(';','').toUpperCase();
+      search = `exportname=${name}%`;
+    } else {
+      name = name.replace(';',''); name = name[0].toUpperCase() + name.substring(1).toLowerCase();
+      search = `${type}Name=${name}`;
+    }
+  }
+
+  let popTag = `<div id="popTag" style="width:400px; height:200px;"></div>`;
+  let tagEle = document.getElementById("popTag");
+  if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time
+  layPop = layer.bindPopup(popTag, {maxWidth:"auto"}).openPopup(); //MUST openPopup before hanging SVG chart on it
+  loonWatchCountsChart(search, "popTag")
+    .catch(err => {loonTypePopup(type, name, layer);}) //no LoonWatch surveys, show other info
+}
+
+function loonTypePopup(type, name, layer) {
+  switch(type) {
+    case 'lake':
+      loonLakePopup(name, layer);
+      break;
+    case 'town':
+      loonTownPopup(name, layer);
+      break;
+    case 'county':
+      loonCntyPopup(name, layer);
+      break;
+  }
+}
+
+function loonChartOnTag(search, htmlId) {
+/*
+  loonWatchCountsChartCreate(search, 'chartSvg')
+    .then(res => {})
+    .catch(err => {})
+*/
+}
+
 function onEachFeature(feature, layer) {
     layer.on('mousemove', function (event) {
       //console.log('mousemove', event);
@@ -385,13 +438,16 @@ function onEachFeature(feature, layer) {
         console.log('Layer Click | Layer name:', layer.options.name, '| Feature:', feature.properties);
         //getGeoJsonFeatureByGroupNameAndFeatureName(layer.options.name, feature.properties.CNTYNAME || feature.properties.TOWNNAME || feature.properties.LAKEID);
         if ('Lakes' == layer.options.name || feature.properties.LAKEID) {
-          loonLakePopup(feature.properties.LAKEID, layer);
+          loonChartPopup('lake', feature.properties.LAKEID, layer);
         }
         if ('Towns' == layer.options.name || feature.properties.TOWNNAME) {
-          loonTownPopup(feature.properties.TOWNNAME, layer);
+          loonChartPopup('town', feature.properties.TOWNNAME, layer);
         }
         if ('Counties' == layer.options.name || feature.properties.CNTYNAME) {
-          loonCntyPopup(feature.properties.CNTYNAME, layer);
+          loonChartPopup('county', feature.properties.CNTYNAME, layer);
+        }
+        if ('State' == layer.options.name) {
+          loonChartPopup(false, false, layer);
         }
     });
     layer.on('contextmenu', function (event) {
