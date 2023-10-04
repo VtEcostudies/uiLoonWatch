@@ -112,18 +112,19 @@ function addMap() {
 }
 
 /*
-  Fired when an overlay is selected through a layer control. We send all overlays
-  to the back so that point markers remain clickable, in the foreground.
+  Fired when an overlay is selected through a layer control. Bring clicked
+  layer to the front, then bring Lakes to the front.
 */
 function MapOverlayAdd(e) {
   defaultBoundaries[e.layer.options.name] = 1;
-  console.log('MapOverlayAdd', e.layer.options.name, defaultBoundaries);
+  console.log('MapOverlayAdd | Bring', e.layer.options.name, 'to the front.', defaultBoundaries);
+  if (typeof e.layer.bringToFront === 'function') {e.layer.bringToFront();} //pull the just-added layer to front
   if (geoGroup) {
-    //if (typeof e.layer.bringToBack === 'function') {e.layer.bringToBack();} //push the just-added layer to back
     geoGroup.eachLayer(layer => {
-      //console.log(`geoGroup: ${layer.options.name}`);
-      if ('Lakes' == e.layer.options.name) {e.layer.bringToFront();}
-      else {e.layer.bringToBack();}
+      if ('Lakes' == layer.options.name) {
+        console.log('MapOverlayAdd | Bring', layer.options.name, 'to the front.');
+        layer.bringToFront();
+      }
    })
   }
 }
