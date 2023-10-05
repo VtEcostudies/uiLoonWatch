@@ -405,7 +405,7 @@ function loonChartPopup(type=false, name=false, layer) {
       search = `${type}Name=${name}`;
     }
   }
-
+  //IMPORTANT: REMOVE AND CREATE CONTAINER TAG WITH EACH POPUP
   let popTag = `<div id="popTag" style="width:400px; height:200px;"></div>`;
   let tagEle = document.getElementById("popTag");
   if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time

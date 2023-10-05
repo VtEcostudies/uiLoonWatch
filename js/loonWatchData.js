@@ -116,9 +116,16 @@ export async function loonWatchChart(data, htmlId) {
     //console.log('loonWatchChart parent element:', ele);
 
     let filter = data[0].Filter ? data[0].Filter : 'State of VT';
+    filter = filter.replace('WHERE', '');
+    filter = filter.replace('LIKE', '');
+    filter = filter.replace('%', '');
+    filter = filter.replace(/"/g, '');
+    filter = filter.replace('exportname', 'Water Body');
+    filter = filter.replace('Name', '');
+    filter = filter.replace('=', 'of');
 
     // Declare the chart dimensions and margins.
-    const margin = {top: 40, right: 30, bottom: 30, left: 40};
+    const margin = {top: 50, right: 30, bottom: 20, left: 40};
     const width = 400;// - margin.left - margin.right; var minWidth = width; 
     const height = 200;// - margin.top - margin.bottom;
 
@@ -252,7 +259,7 @@ export async function loonWatchChart(data, htmlId) {
         .style("fill", svColor)
         .attr("fill-opacity", 0.3)
 
-    var legend_keys = ["Adults", "Chicks", "SubAdults", "Surveyed"]
+    var legend_keys = ["Adults", "Chicks", "SubAdults", "Surveyed Lakes"]
 
     var lineLegend = svg.selectAll(".lineLegend").data(legend_keys)
         .enter().append("g")
@@ -272,7 +279,7 @@ export async function loonWatchChart(data, htmlId) {
                 case 'Adults': return adColor;
                 case 'Chicks': return chColor;
                 case 'SubAdults': return saColor;
-                case 'Surveyed': return svColor;
+                case 'Surveyed Lakes': return svColor;
             }
         })
         .attr("width", 8).attr("height", 8);
