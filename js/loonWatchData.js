@@ -125,12 +125,16 @@ export async function loonWatchChart(data, htmlId) {
     const adColor = "steelblue";
     const chColor = "green";
     const saColor = "gray";
+    const svColor = "red";
 
     // Declare the x (horizontal position) scale. (NOTE: function below MUST have explicit 'return new Date...')
     const x = d3.scaleUtc(d3.extent(data, d => {return new Date(d.year, 0)}), [margin.left, width - margin.right]);
   
+    let svMax = d3.max(data, d => Number(d.SurveyedBodies));
+    let adMax = d3.max(data, d => Number(d.Adults));
+
     // Declare the y (vertical position) scale.
-    const y = d3.scaleLinear([0, d3.max(data, d => Number(d.Adults))], [height - margin.bottom, margin.top]);
+    const y = d3.scaleLinear([0, adMax>svMax?adMax:svMax], [height - margin.bottom, margin.top]);
   
     // Declare the line generator.
     const line = d3.line()
@@ -235,8 +239,20 @@ export async function loonWatchChart(data, htmlId) {
         .attr("cx", d => x(new Date(d.year,0)))
         .attr("cy", d => y(d.SubAdults))
         .attr("r", 3)
+ 
+    // append bar rectangles to the svg element - SurveyedBodies
+    svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("x", d => {return x(new Date(d.year,0))-2})
+        .attr("y", d => y(d.SurveyedBodies)) //the location of the TOP of the bar
+        .attr("width", function(d) { return 4; })
+        .attr("height", function(d) { return height - y(d.SurveyedBodies) - margin.bottom   ; }) //how far DOWN the bar must extend to reach the bottom axis
+        .style("fill", svColor)
+        .attr("fill-opacity", 0.3)
 
-    var legend_keys = ["Adults", "Chicks", "SubAdults"]
+    var legend_keys = ["Adults", "Chicks", "SubAdults", "Surveyed"]
 
     var lineLegend = svg.selectAll(".lineLegend").data(legend_keys)
         .enter().append("g")
@@ -256,6 +272,7 @@ export async function loonWatchChart(data, htmlId) {
                 case 'Adults': return adColor;
                 case 'Chicks': return chColor;
                 case 'SubAdults': return saColor;
+                case 'Surveyed': return svColor;
             }
         })
         .attr("width", 8).attr("height", 8);

@@ -87,6 +87,7 @@ fetchCount(0)
           .x((d) => { return x(new Date(d.year,0)) })
           .y((d) => { return y(d.Chicks) })
           )
+
     // Add individual data points - Chicks
     svg.selectAll("myCircles")
       .data(data)
@@ -96,8 +97,20 @@ fetchCount(0)
         .attr("cx", d => x(new Date(d.year,0)))
         .attr("cy", d => y(d.Chicks))
         .attr("r", 3)
+ 
+    // append the bar rectangles to the svg element
+    svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("x", d => {return x(new Date(d.year,0))-2})
+        .attr("y", d => y(d.SurveyedBodies)) //the location of the TOP of the bar
+        .attr("width", function(d) { return 4; })
+        .attr("height", function(d) { return height - y(d.SurveyedBodies); }) //how far DOWN the bar must extend to reach the bottom axis
+        .style("fill", "red")
+        .attr("fill-opacity", 0.3)
 
-    var legend_keys = ["Adults", "Chicks", "SubAdults"]
+    var legend_keys = ["Adults", "Chicks", "SubAdults", "Surveyed"]
 
     var lineLegend = svg.selectAll(".lineLegend").data(legend_keys)
         .enter().append("g")
@@ -116,6 +129,7 @@ fetchCount(0)
                 case 'Adults': return "steelblue";
                 case 'Chicks': return "green";
                 case 'SubAdults': return "gray";
+                case 'Surveyed': return "red";
             }
         })
         .attr("width", 10).attr("height", 10);
