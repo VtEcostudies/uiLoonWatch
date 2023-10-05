@@ -115,7 +115,7 @@ export async function loonWatchChart(data, htmlId) {
     ele.style.margin = "0px 0px 0px 0px";
     //console.log('loonWatchChart parent element:', ele);
 
-    let filter = data[0].Filter ? data[0].Filter : '';
+    let filter = data[0].Filter ? data[0].Filter : 'State of VT';
 
     // Declare the chart dimensions and margins.
     const margin = {top: 40, right: 30, bottom: 30, left: 40};

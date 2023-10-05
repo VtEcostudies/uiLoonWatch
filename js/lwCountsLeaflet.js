@@ -4,7 +4,8 @@
 /*
 import { getWikiPage } from '../VAL_Web_Utilities/js/wikiPageData.js';
 */
-import { fetchLoonWatch, fetchWaterBody,fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+
 var uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
 var vceCenter = [43.6962, -72.3197]; //VCE coordinates
@@ -289,10 +290,21 @@ function getIntersectingFeatures(e) {
   }
   return html;
 }
+
+/*
+  Fix eg. townName - remove semicolons, capitalize the first letter of each word
+*/
+function capitalize(name) {
+  name = name.replace(';','');
+  let ta = name.split(' ');
+  let tf = '';
+  for (const tp of ta) {tf += tp[0].toUpperCase() + tp.substring(1).toLowerCase() + ' ';}
+  name = tf.trim();
+  return name;
+}
 /*
   Lakes Surveyed (, Lakes Occupied)
 */
-
 async function loonLakePopup(lakeName, layer) {
   lakeName = lakeName.replace(';','').toUpperCase();
   let search = `exportname=${lakeName}%`; //VT water bodies sometimes mismatch loon exportName
@@ -324,11 +336,7 @@ async function loonLakePopup(lakeName, layer) {
 */
 async function loonTownPopup(townName, layer) {
   let bd = defaultBoundaries;
-  townName = townName.replace(';',''); 
-  let ta = townName.split(' ');
-  let tf = '';
-  for (const tp of ta) {tf += tp[0].toUpperCase() + tp.substring(1).toLowerCase() + ' ';}
-  townName = tf.trim(); //townName[0].toUpperCase() + townName.substring(1).toLowerCase();
+  townName = capitalize(townName)
   let search = `townName=${townName}`;
   let lwJson = await fetchSurveyed(search);
   console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchSurveyed:`, lwJson);
@@ -359,7 +367,7 @@ async function loonTownPopup(townName, layer) {
 */
 async function loonCntyPopup(cntyName, layer) {
   let bd = defaultBoundaries;
-  cntyName = cntyName.replace(';',''); cntyName = cntyName[0].toUpperCase() + cntyName.substring(1).toLowerCase();
+  cntyName = capitalize(cntyName);
   let search = `countyName=${cntyName}`;
   let lwJson = await fetchSurveyed(search);
   console.log(`loonCntyPopup(${layer.options.name}:${cntyName}) | fetchSurveyed:`, lwJson);
@@ -393,7 +401,7 @@ function loonChartPopup(type=false, name=false, layer) {
       name = name.replace(';','').toUpperCase();
       search = `exportname=${name}%`;
     } else {
-      name = name.replace(';',''); name = name[0].toUpperCase() + name.substring(1).toLowerCase();
+      name = capitalize(name);
       search = `${type}Name=${name}`;
     }
   }
