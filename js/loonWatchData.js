@@ -1,9 +1,10 @@
 //const apiHost = require('config.js').apiHost; //`api.loons.vtecostudies.org`;
 import { config } from './config.js';
 const apiHost = config.apiHost;
+const apiProt = config.apiProt;
 
 export async function fetchLoonWatch(searchTerm) {
-    const url = `http://${apiHost}/loonwatch?${searchTerm}`;
+    const url = `${config.apiProt}//${apiHost}/loonwatch?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
@@ -23,7 +24,7 @@ export async function fetchTown(searchTerm) {return await fetchInfo(1,searchTerm
 export async function fetchCounty(searchTerm) {return await fetchInfo(2,searchTerm);}
 async function fetchInfo(item=0, searchTerm) {
     const items=['waterBody','town','county'];
-    const url = `http://${apiHost}/info/${items[item]}?${searchTerm}`;
+    const url = `${config.apiProt}//${apiHost}/info/${items[item]}?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
@@ -46,7 +47,7 @@ export async function fetchOccupied(searchTerm) {return await fetchStatus(1,sear
 */
 async function fetchStatus(type=0, searchTerm) {
     const types = ['surveyed','occupied'];
-    const url =  `http://${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+    const url =  `${config.apiProt}//${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
@@ -64,7 +65,7 @@ async function fetchStatus(type=0, searchTerm) {
 
 export async function fetchCount(type=0, searchTerm) {
     const types = ['count'];
-    const url =  `http://${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+    const url =  `${config.apiProt}//${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
@@ -113,7 +114,9 @@ export async function loonWatchChart(data, htmlId) {
     const ele = document.getElementById(htmlId);
     ele.style.padding = "0px 0px 0px 0px";
     ele.style.margin = "0px 0px 0px 0px";
-    //console.log('loonWatchChart parent element:', ele);
+    console.log('loonWatchChart parent element:', ele, ele.style.width, ele.style.height);
+    let parHyt = parseInt(ele.style.height);
+    let parWid = parseInt(ele.style.width);
 
     let filter = data[0].Filter ? data[0].Filter : 'State of VT';
     filter = filter.replace('WHERE', '');
@@ -126,8 +129,8 @@ export async function loonWatchChart(data, htmlId) {
 
     // Declare the chart dimensions and margins.
     const margin = {top: 50, right: 30, bottom: 20, left: 40};
-    const width = 400;// - margin.left - margin.right; var minWidth = width; 
-    const height = 200;// - margin.top - margin.bottom;
+    const width = parWid; //400;// - margin.left - margin.right; var minWidth = width; 
+    const height = parHyt; //200;// - margin.top - margin.bottom;
 
     const adColor = "steelblue";
     const chColor = "green";

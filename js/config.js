@@ -18,8 +18,17 @@ export let config = {};
 config.uiHost = location.protocol + '//' + location.host; //this will include :xxxx port
 config.uiName = location.host.split(':')[0]; //just the host name, like 'localhost', or 'loons.vtecostudies.org'
 switch(config.uiName) {
-    case 'localhost': config.apiHost='localhost:4000'; break;
-    case 'dev.loons.vtecostudies.org': config.apiHost = 'api.dev.loons.vtecostudies.org'; break;
-    case 'loons.vtecostudies.org': config.apiHost = 'api.loons.vtecostudies.org'; break;
+    case 'localhost': 
+        config.apiHost = 'localhost:4000'; 
+        config.apiProt = location.protocol;
+        break;
+    case 'dev.loons.vtecostudies.org': 
+        config.apiHost = 'api.dev.loons.vtecostudies.org';
+        config.apiProt = location.protocol;
+        break;
+    case 'loons.vtecostudies.org': 
+        config.apiHost = 'api.loons.vtecostudies.org'; 
+        config.apiProt = location.protocol;
+        break;
 }
 console.log('config.js', config);

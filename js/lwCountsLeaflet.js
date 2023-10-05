@@ -1,9 +1,6 @@
 /*
   Load a json array from apiLoonWatch and populate the map with point occurrence data.
 */
-/*
-import { getWikiPage } from '../VAL_Web_Utilities/js/wikiPageData.js';
-*/
 import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
 
 var uiHost = location.protocol + "//" + location.host;
@@ -406,7 +403,7 @@ function loonChartPopup(type=false, name=false, layer) {
     }
   }
   //IMPORTANT: REMOVE AND CREATE CONTAINER TAG WITH EACH POPUP
-  let popTag = `<div id="popTag" style="width:400px; height:200px;"></div>`;
+  let popTag = `<div id="popTag" style="width:600px; height:300px;"></div>`;
   let tagEle = document.getElementById("popTag");
   if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time
   layPop = layer.bindPopup(popTag, {maxWidth:"auto"}).openPopup(); //MUST openPopup before hanging SVG chart on it
