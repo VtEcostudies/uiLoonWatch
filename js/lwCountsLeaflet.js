@@ -425,14 +425,6 @@ function loonTypePopup(type, name, layer) {
   }
 }
 
-function loonChartOnTag(search, htmlId) {
-/*
-  loonWatchCountsChartCreate(search, 'chartSvg')
-    .then(res => {})
-    .catch(err => {})
-*/
-}
-
 function onEachFeature(feature, layer) {
     layer.on('mousemove', function (event) {
       //console.log('mousemove', event);
@@ -837,11 +829,7 @@ async function zoomTo(objQry) {
 }
 
 /*
- * Minimal (map-only) standalone use
- *
- * Requires html element where id="leafletMap"
- *
- */
+*/
 if (document.getElementById("leafletMap")) {
     console.log('Element leafletMap')
     window.addEventListener("load", async function() {

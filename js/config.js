@@ -15,6 +15,7 @@ module.exports = {
 */
 
 export let config = {};
+config.uiHost = location.protocol;
 config.uiHost = location.protocol + '//' + location.host; //this will include :xxxx port
 config.uiName = location.host.split(':')[0]; //just the host name, like 'localhost', or 'loons.vtecostudies.org'
 switch(config.uiName) {
