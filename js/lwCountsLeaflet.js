@@ -2,6 +2,7 @@
   Load a json array from apiLoonWatch and populate the map with point occurrence data.
 */
 import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchTowns, fetchLakes } from './vtInfo.js';
 
 var uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
@@ -828,6 +829,32 @@ async function zoomTo(objQry) {
   }
 }
 
+async function townDropDown(search) {
+  let json = await fetchTowns(search); //an array of towns
+  let sel = document.getElementById('townVT');
+  json.rows.forEach(town => {
+    if ('Unknown' != town.townName) {
+      let opt = document.createElement('option');
+      opt.innerHTML = town.townName; //`<a href="${uiHost}?townName=${town.townName}&townBoundary=1">${town.townName}</a>`;
+      opt.value = town.townName;
+      sel.appendChild(opt)
+    }
+  });
+}
+
+async function lakeDropDown(search) {
+  let json = await fetchLakes(search); //an array of lakes
+  let sel = document.getElementById('lakeVT');
+  json.rows.forEach(lake => {
+    if ('Unknown' != lake.locationname) {
+      let opt = document.createElement('option');
+      opt.innerHTML = lake.locationname;
+      opt.value = lake.exportname;
+      sel.appendChild(opt)
+    }
+  });
+}
+
 /*
 */
 if (document.getElementById("leafletMap")) {
@@ -861,6 +888,26 @@ if (document.getElementById("leafletMap")) {
         document.getElementById("zoomVT").addEventListener("click", () => {
           console.log('zoomVT button click');
           zoomVT();
+        });
+      }
+
+      if (document.getElementById("townVT")) {
+        townDropDown();
+        let eleTown = document.getElementById("townVT");
+        eleTown.addEventListener("change", (e) => {
+          let townName = eleTown.selectedOptions[0].value;
+          console.log('townVT change', townName);
+          this.location.assign(`${uiHost}?townName=${townName}&townBoundary=1`)
+        });
+      }
+
+      if (document.getElementById("lakeVT")) {
+        lakeDropDown();
+        let eleLake = document.getElementById("lakeVT");
+        eleLake.addEventListener("change", (e) => {
+          let lakeId = eleLake.selectedOptions[0].value;
+          console.log('lakeVT change', lakeId);
+          this.location.assign(`${uiHost}?LAKEID=${lakeId}`)
         });
       }
 
