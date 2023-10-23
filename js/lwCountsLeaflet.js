@@ -835,7 +835,7 @@ async function townDropDown(search) {
   json.rows.forEach(town => {
     if ('Unknown' != town.townName) {
       let opt = document.createElement('option');
-      opt.innerHTML = town.townName; //`<a href="${uiHost}?townName=${town.townName}&townBoundary=1">${town.townName}</a>`;
+      opt.innerHTML = town.townName;
       opt.value = town.townName;
       sel.appendChild(opt)
     }
@@ -897,7 +897,10 @@ if (document.getElementById("leafletMap")) {
         eleTown.addEventListener("change", (e) => {
           let townName = eleTown.selectedOptions[0].value;
           console.log('townVT change', townName);
-          this.location.assign(`${uiHost}?townName=${townName}&townBoundary=1`)
+          //this.location.assign(`${uiHost}?townName=${townName}&townBoundary=1`);
+          const parm = new URLSearchParams({'townName':townName});
+          zoomTo(parm);
+          eleTown.value = 'default';
         });
       }
 
@@ -907,7 +910,10 @@ if (document.getElementById("leafletMap")) {
         eleLake.addEventListener("change", (e) => {
           let lakeId = eleLake.selectedOptions[0].value;
           console.log('lakeVT change', lakeId);
-          this.location.assign(`${uiHost}?LAKEID=${lakeId}`)
+          //this.location.assign(`${uiHost}?LAKEID=${lakeId}`);
+          const parm = new URLSearchParams({'LAKEID':lakeId});
+          zoomTo(parm);
+          eleLake.value = 'default';
         });
       }
 
