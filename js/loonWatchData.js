@@ -137,7 +137,8 @@ export async function loonWatchChart(data, htmlId, search) {
     const chColor = "green";
     const saColor = "gray";
     const svColor = "red";
-    const fontSize = width/60;
+    var fontSize = width/60;
+    fontSize = fontSize < 9 ? 9 : fontSize; //set a minimum
 
     // Declare the x (horizontal position) scale. (NOTE: function below MUST have explicit 'return new Date...')
     const x = d3.scaleUtc(d3.extent(data, d => {return new Date(d.year, 0)}), [margin.left, width - margin.right]);
@@ -312,12 +313,12 @@ export async function loonWatchChart(data, htmlId, search) {
     
     lineLegend.append("text").text(function (d) {return d;})
         .attr("y", 10)
-        .attr("x", 80+fontSize/2)
+        .attr("x", width/10+fontSize/2)
         .attr("transform", `translate(10, ${fontSize*0.8})`); //align texts with boxes translate(x, y)
     
     lineLegend.append("rect") //color squares
         .attr("y", 10)
-        .attr("x", 80)
+        .attr("x", width/10) //left position offset
         .attr("fill", function (d, i) {
             //console.log(d, i);
             switch(d) {

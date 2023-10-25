@@ -108,8 +108,19 @@ function addMap() {
     loonMap.on("zoomend", e => onZoomEnd(e));
     loonMap.on("overlayadd", e => MapOverlayAdd(e));
     loonMap.on("overlayremove", e => MapOverlayRem(e));
+    loonMap.on('contextmenu', e => MapContext(e));
 }
 
+/* Right-click on map produces lat/lon popup */
+function MapContext(e) {
+  console.log(e);
+  let html = `
+  <p>Lat: ${e.latlng.lat}</p>
+  <p>Lon: ${e.latlng.lng}</p>`;
+  loonMap.openPopup(html, e.latlng, {
+    offset: L.point(0, 0)
+  });
+}
 /*
   Fired when an overlay is selected through a layer control. Bring clicked
   layer to the front, then bring Lakes to the front.
@@ -404,7 +415,7 @@ function loonChartPopup(type=false, name=false, layer) {
     }
   }
   //IMPORTANT: REMOVE AND CREATE CONTAINER TAG WITH EACH POPUP
-  let popTag = `<div id="popTag" style="width:600px; height:300px;"></div>`;
+  let popTag = `<div id="popTag" style="width:400px; height:200px;"></div>`;
   let tagEle = document.getElementById("popTag");
   if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time
   layPop = layer.bindPopup(popTag, {maxWidth:"auto"}).openPopup(); //MUST openPopup before hanging SVG chart on it
@@ -731,7 +742,7 @@ async function getGeoJsonGroupFromName(group) {
 }
 async function getGeoJsonFeatureFromLayerByName(layer, name) {
   for await (const [key, val] of Object.entries(layer._layers)) { //iterate over geoJson layer's feature layers
-    //console.log(key, val);
+    //console.log(key, val.feature.properties);
     if (name.toUpperCase() == 'VERMONT') {
       return val;
     }
@@ -821,10 +832,23 @@ async function zoomTo(objQry) {
     let layer = await getGeoJsonGroupFromName(typeId);
     let feature = false;
     if (layer) {feature = await getGeoJsonFeatureFromLayerByName(layer, itemId);}
-    console.log('zoomTo | geoJson layer:', layer);
-    console.log('zoomTo | geoJson feature:', feature);
-    if (feature) {
+    console.log('zoomTo | geoJson layer for', typeId, layer);
+    console.log('zoomTo | geoJson feature for:', itemId, feature);
+    if (feature.feature) {
       zoomLayer(feature);
+    } else {
+      console.log(`zoomTo(Layer:${typeId} Feature:${itemId}) failed - ${itemId} not found in ${typeId}.`);
+      if ('Lakes' == typeId) {
+        let res = await fetchWaterBody(`wbtextid=${itemId}`);
+        if (1 == res.rowCount) {
+          let wb = res.rows[0]; let lat=wb.wbcenterlatitude; let lng=wb.wbcenterlongitude; let latlon=L.latLng({'lat':lat, 'lng':lng});
+          loonMap.setView(latlon, 15);
+          let html = `<p>${itemId} (${wb.wbfullname})</p>`;
+          loonMap.openPopup(html, latlon, {offset: L.point(0, 0)});
+        } else {
+          console.log(`zoomTo(Layer:${typeId} Feature:${itemId}) failed - got ${res.rowCount} from ${res.query}`)
+        }
+      }
     }
   }
 }
