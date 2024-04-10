@@ -17,3 +17,24 @@ if (townName) {search = `townName=${townName}`;}
 if (lakeId) {search = `exportname=${lakeId}`;}
 
 loonWatchCountsChartCreate(search, 'chartDiv');
+
+/*
+Lake/Pond Dashboard definitions:
+  - LoonWatch Counts
+  - Nesting and Territorial Stats
+    - Time-series
+    - Most recent
+  - Volunteer Stats 
+    - # visits this year
+    - sightings, most recent sighting
+*/
+
+/*
+Town Dashboard definitions:
+- LoonWatch Counts
+- Nesting and Territorial Stats
+- List of WaterBodies
+  - Surveyed/most recent year
+  - Occupied/most recent year
+  - Nesting/most recent year
+*/

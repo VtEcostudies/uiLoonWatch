@@ -1,8 +1,9 @@
 /*
   Load a json array from apiLoonWatch and populate the map with point occurrence data.
 */
-import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
 import { fetchTowns, fetchLakes } from './vtInfo.js';
+import { getDataDownloadData } from './download.js';
 
 var uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
@@ -340,33 +341,37 @@ async function loonLakePopup(lakeName, layer) {
   }
   layer.bindPopup(popHt, {minWidth:150}).openPopup();
 }
+
 /*
-  Lakes, Lakes Surveyed (, Lakes Occupied)
+  Water Body, Area, Last Surveyed, Last Occupied
 */
 async function loonTownPopup(townName, layer) {
   let bd = defaultBoundaries;
   townName = capitalize(townName)
   let search = `townName=${townName}`;
-  let lwJson = await fetchSurveyed(search);
-  console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchSurveyed:`, lwJson);
-  let popHtm = `Town of <u><b>${townName}</b>`;
-  if (lwJson.rowCount) {
-    popHtm += ` Lakes Surveyed</u>:<br>`;
+  let lwJson = await fetchCombined(search);
+  console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchCombined:`, lwJson);
+  let popHtm = '';
+  let hasData = false;
+  if (lwJson.rowCount && lwJson.rows[0].wbtextid) {
+    popHtm = '';
+    popHtm += ` Water Bodies</u>:<br><table class="poptbl"><tr><th>Name</th><th>Area</th><th>Surveyed</th><th>Occupied</th></tr>`;
     for (const row of lwJson.rows) {
-      popHtm += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> in ${row.surveyed}`;
-      popHtm += '<br>';
-    }
-  } else {
-    let wbJson = await fetchWaterBody(`wbtownname=${townName}`);
-    popHtm += ` Water Bodies:</u><br>`;
-    if (wbJson.rowCount) {
-      for (const row of wbJson.rows) {
-        popHtm += `<a href="${uiHost}?LAKEID=${row.wbtextid}&townBoundary=${+bd.Towns}&countyBoundary=${+bd.Counties}">${row.wbtextid}</a> (${row.wbofficialname})`;
-        popHtm += '<br>';
+      if (row.lakeName) {//lastSurveyed || row.lastOccupied) {
+        let lastSurveyed = row.lastSurveyed ? row.lastSurveyed : '';
+        let lastOccupied = row.lastOccupied ? row.lastOccupied : '';
+        hasData = hasData ? hasData : row.lastSurveyed;
+        popHtm += `<tr><td><a href="${uiHost}/chart.html?LAKEID=${row.wbtextid}">${row.lakeName}</a></td><td>${row.wbarea}</td><td>${lastSurveyed}</td><td>${lastOccupied}</td></tr>`
+      } else {
+        popHtm += `<tr><td>${row.wbtextid}</td><td>${row.wbarea}</td><td></td><td></td></tr>`
       }
-    } else {
-      popHtm += `None Found.`;
     }
+    let title = ''
+    if (hasData) {title = `<u>Town of <b><a href="${uiHost}/chart.html?townName=${townName}">${townName}</a></b>`;}
+    else {title = `<u>Town of <b>${townName}</b>`;}
+    popHtm = title + popHtm;
+  } else {
+    popHtm = `<u>Town of <b>${townName}</b></u> has no water bodies.`;
   }
   layer.bindPopup(popHtm, {minWidth:150}).openPopup();
 }
@@ -415,7 +420,7 @@ function loonChartPopup(type=false, name=false, layer) {
     }
   }
   //IMPORTANT: REMOVE AND CREATE CONTAINER TAG WITH EACH POPUP
-  let popTag = `<div id="popTag" style="width:400px; height:200px;"></div>`;
+  let popTag = `<div id="popTag" style="width:400px; height:200px; cursor:pointer;"></div>`;
   let tagEle = document.getElementById("popTag");
   if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time
   layPop = layer.bindPopup(popTag, {maxWidth:"auto"}).openPopup(); //MUST openPopup before hanging SVG chart on it
@@ -451,7 +456,8 @@ function onEachFeature(feature, layer) {
           loonChartPopup('lake', feature.properties.LAKEID, layer);
         }
         if ('Towns' == layer.options.name || feature.properties.TOWNNAME) {
-          loonChartPopup('town', feature.properties.TOWNNAME, layer);
+          //loonChartPopup('town', feature.properties.TOWNNAME, layer);
+          loonTownPopup(feature.properties.TOWNNAME, layer);
         }
         if ('Counties' == layer.options.name || feature.properties.CNTYNAME) {
           loonChartPopup('county', feature.properties.CNTYNAME, layer);
@@ -940,6 +946,15 @@ if (document.getElementById("leafletMap")) {
           eleLake.value = 'default';
         });
       }
-
+      let eleItm = document.getElementById("download-item");
+      if (eleItm) {
+        eleItm.addEventListener("change", function(e) {
+          console.log(e.target);
+          let item = e.target.value;
+          let name = e.target.selectedOptions[0].innerText;
+          getDataDownloadData({id: item, name: name}, 0);
+          eleItm.options[0].selected="true";
+        });
+      }
     });
 }

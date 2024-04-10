@@ -38,7 +38,28 @@
 </head>
 
 <header>
-    <h3 class="topMenu">Vermont LoonWatch Annual 1-day Census Counts</h3>
+    <div class="row">
+        <div class="col-lg-10">
+            <h3 class="topMenu">Vermont LoonWatch Annual 1-day Census Counts</h3>
+        </div>
+        <div class="col-lg-2 col-md-4 col-xs-12" id="data-download">
+            <!--
+            <button class="btn btn-link" id="download-csv" type="submit" title="Download CSV">
+            <i class="fa fa-download" aria-hidden="true"></i>
+            CSV
+            </button>
+            -->
+            <select id="download-item"  class="map-button">
+                <option value="DL" disabled selected>Download CSV</option>
+                <option value="LL">Loon Lakes</option>
+                <option value="SL">Surveyed Lakes</option>
+                <option value="OL">Occupied Lakes</option>
+                <option value="WB">Water Bodies</option>
+                <option value="VT">Vermont Towns</option>
+                <option value="VC">Vermont Counties</option>
+            </select>
+        </div>
+    </div>
     <hr>
 </header>
 <!--

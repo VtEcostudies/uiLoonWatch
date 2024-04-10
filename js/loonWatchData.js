@@ -40,12 +40,13 @@ async function fetchInfo(item=0, searchTerm) {
 }
 export async function fetchSurveyed(searchTerm) {return await fetchStatus(0,searchTerm);}
 export async function fetchOccupied(searchTerm) {return await fetchStatus(1,searchTerm);}
+export async function fetchCombined(searchTerm) {return await fetchStatus(2,searchTerm);}
 /*
     Fetch lake status by Lake/Town/County/Region
-    Status types are 0:surveyed, 1:occupied
+    Status types are 0:surveyed, 1:occupied, 2:combined stats
 */
 async function fetchStatus(type=0, searchTerm) {
-    const types = ['surveyed','occupied'];
+    const types = ['surveyed','occupied','stats'];
     const url =  `${config.apiProt}//${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
     let enc = encodeURI(url);
     try {

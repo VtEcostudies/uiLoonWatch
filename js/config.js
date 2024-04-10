@@ -22,6 +22,8 @@ switch(config.uiName) {
     case 'localhost': 
         config.apiHost = 'localhost:4000'; 
         config.apiProt = location.protocol;
+        //config.apiHost = 'api.loons.vtecostudies.org'; 
+        //config.apiProt = 'https:';
         break;
     case 'dev.loons.vtecostudies.org': 
         config.apiHost = 'api.dev.loons.vtecostudies.org';

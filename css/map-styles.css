@@ -10,3 +10,20 @@
   text-align: center;
   vertical-align: middle;
 }
+
+.poptbl {
+
+}
+
+.poptbl th {
+}
+
+.poptbl td {
+  padding-right: 8px;
+  text-align: left;
+  border: 1px solid;
+}
+
+.poptbl tr:nth-child(odd) {
+  background-color: #f2f2f2;
+}
