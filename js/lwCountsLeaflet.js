@@ -812,11 +812,13 @@ async function getGeoJsonFeatureFromLayerByName(layer, name) {
       //console.log(`getGeoJsonFeatureFromLayerByName feature`, val)
       return val;
     }
-    let lakeId = filterLakeName(val.feature.properties.LAKEID)
-    if (name.toUpperCase() == lakeId) {
-      console.log(`getGeoJsonFeatureFromLayerByName found LAKEID`, lakeId)
-      console.log(`getGeoJsonFeatureFromLayerByName feature`, val)
-      return val;
+    if ('Lakes' == layer.options.name) {
+      let lakeId = filterLakeName(val.feature.properties.LAKEID)
+      if (name.toUpperCase() == lakeId) {
+        console.log(`getGeoJsonFeatureFromLayerByName found LAKEID`, lakeId)
+        console.log(`getGeoJsonFeatureFromLayerByName feature`, val)
+        return val;
+      }
     }
   }
   console.log('FEATURE loop DONE.'); 
