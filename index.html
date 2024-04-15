@@ -34,6 +34,9 @@
     <script src="../VAL_Web_Utilities/js/purify.min.js"></script>
     -->
     <script type="module" src="js/lwCountsLeaflet.js"></script>
+    <script type="module">
+        import { zoomTo } from "./js/lwCountsLeaflet.js";
+    </script>
 
 </head>
 
@@ -50,7 +53,7 @@
             </button>
             -->
             <select id="download-item"  class="map-button">
-                <option value="DL" disabled selected>Download CSV</option>
+                <option value="default" disabled selected>Download CSV</option>
                 <option value="LL">Loon Lakes</option>
                 <option value="SL">Surveyed Lakes</option>
                 <option value="OL">Occupied Lakes</option>

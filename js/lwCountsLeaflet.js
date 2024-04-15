@@ -4,6 +4,10 @@
 import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
 import { fetchTowns, fetchLakes } from './vtInfo.js';
 import { getDataDownloadData } from './download.js';
+import { getLoonWatchSignups } from './googleSheetSignups.js';
+import { mapLayerStyle } from './mapLayerStyles.js';
+
+const loonWatchSignupForm = 'https://docs.google.com/forms/d/e/1FAIpQLSfYH3AP9bLZRJaAP9BKYXDdLvV3TeLkE1HYNWyJYT9Z-ZXJww/viewform';
 
 var uiHost = location.protocol + "//" + location.host;
 const fmt = new Intl.NumberFormat(); //use this to format nubmers like fmt.format(value)
@@ -28,6 +32,7 @@ var abortData = false; //make this global so we can abort a data request
 var mapId = 'loonWatchMap'; //this ID must be 
 var defaultBoundaries = {State:0,Counties:0,Towns:0,Lakes:1};
 var layPop = false; //global reference to layer-based popup. used to close before opening another?
+var sheetSignUps = [];
 
 //for standalone use
 function addMap() {
@@ -317,7 +322,7 @@ function capitalize(name) {
 */
 async function loonLakePopup(lakeName, layer) {
   lakeName = lakeName.replace(';','').toUpperCase();
-  let search = `exportname=${lakeName}%`; //VT water bodies sometimes mismatch loon exportName
+  let search = `exportname=${lakeName}`; //VT water bodies sometimes don't match loon exportName, but we can't add % because eg. BROWN% gets 4 lakes
   let lwJson = await fetchLoonWatch(search);
   console.log(`loonLakePopup(${layer.options.name}:${lakeName}) | fetchLoonWatch:`, lwJson);
   let popHt = `<b><u>${lakeName}</u></b>`;
@@ -339,11 +344,30 @@ async function loonLakePopup(lakeName, layer) {
     }
     popHt += 'No LoonWatch Surveys found.'
   }
+  popHt += '<br>' + getSignupLink(lakeName);
   layer.bindPopup(popHt, {minWidth:150}).openPopup();
+}
+function getSignupLink(wbtextid, action='Volunteer') {
+  //?usp=pp_url&entry.712550358=Adopt&entry.559384074=Lake+Abenaki+Thetford&entry.1991296366=No
+  //?usp=pp_url&entry.712550358=Adopt&entry.559384074=Abbey+Pond+Ripton&entry.1991296366=No
+  let qryArgAdopt = 'entry.712550358'; //entry.712550358=Adopt
+  let qryArgFullName = 'entry.559384074'; //entry.559384074=Lake+Abenaki+Thetford
+  let qryArgNewUser = 'entry.1991296366'; //entry.1991296366=No
+  let fullName = waterBodies[wbtextid] ? waterBodies[wbtextid].wbfullname : '';
+  let signArgs = `?usp=pp_url&${qryArgAdopt}=Adopt&${qryArgFullName}=${fullName}`; //&${qryArgNewUser}=No`;
+  let signLink = `<a target="_blank" href="${loonWatchSignupForm}${signArgs}"><b>${action}</b> for ${fullName}</a>`;
+  if (waterBodies[wbtextid]) {
+    console.log('getSignupLink for wbtextid=', wbtextid, signLink);
+  } else {
+    console.log('getSignupLink', wbtextid, 'NOT found in waterBodies.', waterBodies);
+  }
+  return signLink;
 }
 
 /*
   Water Body, Area, Last Surveyed, Last Occupied
+  NOTE: attempt to alter this to inject the zoomTo function into Leaflet popups as suggested here:
+  https://stackoverflow.com/questions/13698975/click-link-inside-leaflet-popup-and-do-javascript#13699060
 */
 async function loonTownPopup(townName, layer) {
   let bd = defaultBoundaries;
@@ -357,13 +381,16 @@ async function loonTownPopup(townName, layer) {
     popHtm = '';
     popHtm += ` Water Bodies</u>:<br><table class="poptbl"><tr><th>Name</th><th>Area</th><th>Surveyed</th><th>Occupied</th></tr>`;
     for (const row of lwJson.rows) {
-      if (row.lakeName) {//lastSurveyed || row.lastOccupied) {
+      let lakeArea = row.wbarea ? row.wbarea : '';
+      if (row.lakeName) {
         let lastSurveyed = row.lastSurveyed ? row.lastSurveyed : '';
         let lastOccupied = row.lastOccupied ? row.lastOccupied : '';
         hasData = hasData ? hasData : row.lastSurveyed;
-        popHtm += `<tr><td><a href="${uiHost}/chart.html?LAKEID=${row.wbtextid}">${row.lakeName}</a></td><td>${row.wbarea}</td><td>${lastSurveyed}</td><td>${lastOccupied}</td></tr>`
+        popHtm += `<tr><td><a href="${uiHost}/chart.html?LAKEID=${row.wbtextid}">${row.lakeName}</a></td><td>${lakeArea}</td><td>${lastSurveyed}</td><td>${lastOccupied}</td></tr>`
       } else {
-        popHtm += `<tr><td>${row.wbtextid}</td><td>${row.wbarea}</td><td></td><td></td></tr>`
+        popHtm += `<tr><td><a href="${uiHost}?LAKEID=${row.wbtextid}&${strQueryParams}">${row.wbtextid}</a></td><td>${lakeArea}</td><td></td><td></td></tr>`;
+        //let parm = {'LAKEID':row.wbtextid};let urlParm = new URLSearchParams(parm);
+        //popHtm += `<tr><td><button onclick="${console.log('test')}">${row.wbtextid}</button></td><td>${lakeArea}</td><td></td><td></td></tr>`;
       }
     }
     let title = ''
@@ -413,19 +440,26 @@ function loonChartPopup(type=false, name=false, layer) {
   if (type && name) {
     if ('lake'==type) {
       name = name.replace(';','').toUpperCase();
-      search = `exportname=${name}%`;
+      search = `exportname=${name}`;
     } else {
       name = capitalize(name);
       search = `${type}Name=${name}`;
     }
   }
   //IMPORTANT: REMOVE AND CREATE CONTAINER TAG WITH EACH POPUP
-  let popTag = `<div id="popTag" style="width:400px; height:200px; cursor:pointer;"></div>`;
+  let popTag = `<div id="popTag" style="width:400px; height:250px; cursor:pointer;"><span id="signupLink"></span></div>`;
   let tagEle = document.getElementById("popTag");
   if (tagEle) {tagEle.innerHTML = ''; tagEle.remove();} //MUST remove previous popup elemet to show popup chart 2nd time
   layPop = layer.bindPopup(popTag, {maxWidth:"auto"}).openPopup(); //MUST openPopup before hanging SVG chart on it
-  loonWatchCountsChart(search, "popTag")
+  loonWatchCountsChart(search, "popTag") //hang the chart on the div defined above
     .catch(err => {loonTypePopup(type, name, layer);}) //no LoonWatch surveys, show other info
+    .then(res => { //now add link to signup for lake
+      if ('lake'==type) {addLakeSignupLink(name);}
+    })
+}
+function addLakeSignupLink(name) {
+  let sgnEle = document.getElementById("signupLink");
+  sgnEle.innerHTML = getSignupLink(name);
 }
 
 function loonTypePopup(type, name, layer) {
@@ -442,6 +476,13 @@ function loonTypePopup(type, name, layer) {
   }
 }
 
+function filterLakeName(raw) {
+  //let fix = raw.replace(/[^a-zA-Z1-9\(\)\- ]/g, "").trim(); //remove special characters from string
+  let fix = raw.replace(/\r?\n|\r|\t/g, "").trim(); //remove special characters from string
+  //console.log('filterLakeName', raw, fix);
+  return fix;
+}
+
 function onEachFeature(feature, layer) {
     layer.on('mousemove', function (event) {
       //console.log('mousemove', event);
@@ -453,7 +494,9 @@ function onEachFeature(feature, layer) {
         console.log('Layer Click | Layer name:', layer.options.name, '| Feature:', feature.properties);
         //getGeoJsonFeatureByGroupNameAndFeatureName(layer.options.name, feature.properties.CNTYNAME || feature.properties.TOWNNAME || feature.properties.LAKEID);
         if ('Lakes' == layer.options.name || feature.properties.LAKEID) {
-          loonChartPopup('lake', feature.properties.LAKEID, layer);
+          let lakeId = filterLakeName(feature.properties.LAKEID);
+          console.log('onEachFeature=>layer.onclick=>feature.properties.LAKEID', lakeId);
+          loonChartPopup('lake', lakeId, layer);
         }
         if ('Towns' == layer.options.name || feature.properties.TOWNNAME) {
           //loonChartPopup('town', feature.properties.TOWNNAME, layer);
@@ -483,15 +526,17 @@ function onEachFeature(feature, layer) {
         for (var key in obj) { //iterate over feature properties
           switch(key.substr(key.length - 4).toLowerCase()) { //last 4 characters of property
             case 'name':
-              tips = `${obj[key]}<br>` + tips;
+              tips += `${obj[key]}<br>` + tips;
               break;
           }
           switch(key) {
             case 'LAKEID':
-              tips += `${key}: ${obj[key]}<br>`;
-              break;
+            case 'GISAcres':
             case 'WBID':
               tips += `${key}: ${obj[key]}<br>`;
+              break;
+            default:
+              //tips += `${key}: ${obj[key]}<br>`;
               break;
           }
         }
@@ -767,8 +812,9 @@ async function getGeoJsonFeatureFromLayerByName(layer, name) {
       //console.log(`getGeoJsonFeatureFromLayerByName feature`, val)
       return val;
     }
-    if (name.toUpperCase() == val.feature.properties.LAKEID) {
-      console.log(`getGeoJsonFeatureFromLayerByName found LAKEID`, val.feature.properties.LAKEID)
+    let lakeId = filterLakeName(val.feature.properties.LAKEID)
+    if (name.toUpperCase() == lakeId) {
+      console.log(`getGeoJsonFeatureFromLayerByName found LAKEID`, lakeId)
       console.log(`getGeoJsonFeatureFromLayerByName feature`, val)
       return val;
     }
@@ -825,8 +871,9 @@ function initMap() {
     addMapCallbacks();
 }
 
-async function zoomTo(objQry) {
-  console.log('zoomTo', objQry);
+export async function zoomTo(rawQry) { //pass a literal JSON object, not an objUrlParam...
+  console.log('zoomTo', rawQry);
+  let objQry = new URLSearchParams(rawQry);
   let lakeId = objQry.get('LAKEID');
   let townId = objQry.get('town') || objQry.get('townName') || objQry.get('Town') || objQry.get('TownName');
   let cntyId = objQry.get('county') || objQry.get('countyName') || objQry.get('County') || objQry.get('CountyName');
@@ -885,14 +932,66 @@ async function lakeDropDown(search) {
   });
 }
 
+let waterBodies = {}; var wbPromise = new Promise((resolve, reject) => {});
+async function waterBodyDropDown(search) {
+  wbPromise = fetchWaterBody(search);
+  let sel = document.getElementById('lakeVT');
+  wbPromise.then(json => {
+    json.rows.forEach(wb => {
+      if ('Unknown' != wb.wbtextid) {
+        waterBodies[wb.wbtextid] = wb; 
+        let opt = document.createElement('option');
+        opt.innerHTML = `${wb.wbfullname}`;
+        opt.value = wb.wbtextid;
+        sel.appendChild(opt)
+      }
+    });
+  }).catch(err => {
+    console.log('waterBodyDropDown=>fetchWaterBody ERROR', err);
+  })
+}
+
+async function getLoonSignups() {
+  //get an object of sheetSignUps with an array of signup events containing: email, lakeId, and date
+  sheetSignUps = await getLoonWatchSignups();
+  console.log('getLoonSignups', sheetSignUps);
+  return sheetSignUps;
+}
+function putLoonSignups(signUps) {
+  geoGroup.eachLayer(layer => {
+    //console.log(`putSignups found GeoJson layer:`, layer.options.name);
+    if ('Lakes'==layer.options.name) {
+      console.log(`putSignups found GeoJson layer:`, layer.options.name);
+      layer.eachLayer(subLay => {
+        //console.log(subLay.feature.properties);
+        let lakeId = filterLakeName(subLay.feature.properties.LAKEID); //geoJson LAKEIDS are not clean
+        let fullName = waterBodies[lakeId] ? waterBodies[lakeId].wbfullname : false; //here we match geoJson LAKEID to our db waterBodies - there are disagreements!
+        if (!fullName) {console.log('putLoonSigups LAKEID Not Found in waterBodies:', lakeId);}
+        if (signUps.lake[fullName]) {
+          //console.log('putLoonSignUps found signup for', fullName, lakeId, signUps[fullName], subLay.feature.properties);
+          //Problem: there's a list of timeStamped adoption/declinations. We need a distilled list that processed those, here.
+          signUps.lake[fullName].forEach(signUp => {
+            switch(signUp.mode) {
+              case 'Adopt': subLay.setStyle(mapLayerStyle.signupLoonWatchStyle); break;
+            }
+          })
+        } else {
+          subLay.setStyle(mapLayerStyle.signupMissingStyle);
+        }
+      })
+    }
+  })
+}
+
 /*
 */
+var strQueryParams = '';
 if (document.getElementById("leafletMap")) {
     console.log('Element leafletMap')
     window.addEventListener("load", async function() {
       console.log('window load event');
       const recQry = new URLSearchParams(window.location.search);
-      var strQueryParams = '';
+      
       
       recQry.forEach((val, key) => {
         console.log('Query Param:', key, val);
@@ -921,40 +1020,51 @@ if (document.getElementById("leafletMap")) {
         });
       }
 
-      if (document.getElementById("townVT")) {
+      let eleTown = document.getElementById("townVT");
+      if (eleTown) {
         townDropDown();
-        let eleTown = document.getElementById("townVT");
         eleTown.addEventListener("change", (e) => {
           let townName = eleTown.selectedOptions[0].value;
           console.log('townVT change', townName);
           //this.location.assign(`${uiHost}?townName=${townName}&townBoundary=1`);
-          const parm = new URLSearchParams({'townName':townName});
+          let parm = {'townName':townName};
+          let urlParm =  new URLSearchParams(parm);
           zoomTo(parm);
           eleTown.value = 'default';
         });
       }
 
-      if (document.getElementById("lakeVT")) {
-        lakeDropDown();
-        let eleLake = document.getElementById("lakeVT");
+      let eleLake = document.getElementById("lakeVT");
+      if (eleLake) {
+        //lakeDropDown();
+        waterBodyDropDown();
         eleLake.addEventListener("change", (e) => {
           let lakeId = eleLake.selectedOptions[0].value;
           console.log('lakeVT change', lakeId);
           //this.location.assign(`${uiHost}?LAKEID=${lakeId}`);
-          const parm = new URLSearchParams({'LAKEID':lakeId});
+          let parm = {'LAKEID':lakeId};
+          let urlParm =  new URLSearchParams(parm);
           zoomTo(parm);
           eleLake.value = 'default';
         });
       }
+
       let eleItm = document.getElementById("download-item");
       if (eleItm) {
         eleItm.addEventListener("change", function(e) {
           console.log(e.target);
-          let item = e.target.value;
-          let name = e.target.selectedOptions[0].innerText;
+          let item = eleItm.selectedOptions[0].value;
+          let name = eleItm.selectedOptions[0].innerText;
           getDataDownloadData({id: item, name: name}, 0);
-          eleItm.options[0].selected="true";
+          eleItm.value = 'default';
         });
       }
-    });
+
+      wbPromise.then(json => { //must wait for waterBodies to load before putting signups
+        getLoonSignups().then(signUps => {
+            putLoonSignups(signUps);
+        })
+      })
+
+    }); //end window.onload
 }
