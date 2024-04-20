@@ -2,10 +2,12 @@
   Load a json array from apiLoonWatch and populate the map with point occurrence data.
 */
 import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { capitalize } from './utils.js';
 import { fetchTowns, fetchLakes } from './vtInfo.js';
 import { getDataDownloadData } from './download.js';
 import { getLoonWatchSignups } from './googleSheetSignups.js';
 import { mapLayerStyle } from './mapLayerStyles.js';
+import { getStoreData, setStoreData } from './storeData.js';
 
 const loonWatchSignupForm = 'https://docs.google.com/forms/d/e/1FAIpQLSfYH3AP9bLZRJaAP9BKYXDdLvV3TeLkE1HYNWyJYT9Z-ZXJww/viewform';
 
@@ -30,9 +32,10 @@ var clusterMarkers = false;
 var iconMarkers = false;
 var abortData = false; //make this global so we can abort a data request
 var mapId = 'loonWatchMap'; //this ID must be 
-var defaultBoundaries = {State:0,Counties:0,Towns:0,Lakes:1};
+var defaultBoundaries = {State:0,'Biophysical Regions':0,Counties:0,Towns:0,Lakes:1};
 var layPop = false; //global reference to layer-based popup. used to close before opening another?
 var sheetSignUps = [];
+var eleWait = document.getElementById("wait-overlay");
 
 //for standalone use
 function addMap() {
@@ -127,12 +130,17 @@ function MapContext(e) {
     offset: L.point(0, 0)
   });
 }
+
+function trackSelectedBoundaries(layer, add=1) {
+  defaultBoundaries[layer.options.name] = +add; //set the boundaryLayer reference object to reflect newly selected layer
+  setStoreData('defaultBoundaries', defaultBoundaries);
+}
 /*
-  Fired when an overlay is selected through a layer control. Bring clicked
-  layer to the front, then bring Lakes to the front.
+  Fired when an overlay is selected through a layer control. Bring clicked layer to the front, then bring Lakes to the front.
 */
 function MapOverlayAdd(e) {
-  defaultBoundaries[e.layer.options.name] = 1;
+  //defaultBoundaries[e.layer.options.name] = 1; //set the boundaryLayer reference object to reflect newly selected layer
+  trackSelectedBoundaries(e.layer, 1);
   console.log('MapOverlayAdd | Bring', e.layer.options.name, 'to the front.', defaultBoundaries);
   if (typeof e.layer.bringToFront === 'function') {e.layer.bringToFront();} //pull the just-added layer to front
   if (geoGroup) {
@@ -144,8 +152,10 @@ function MapOverlayAdd(e) {
    })
   }
 }
+/* Fired when an overlay is de-selected through a layer control. */
 function MapOverlayRem(e) {
-  defaultBoundaries[e.layer.options.name] = 0;
+  //defaultBoundaries[e.layer.options.name] = 0; //set the boundaryLayer reference object to reflect newly removed layer
+  trackSelectedBoundaries(e.layer, 0);
   console.log('MapOverlayRem', e.layer.options.name, defaultBoundaries);
 }
 
@@ -192,7 +202,7 @@ async function addBoundaries(setDef=false) {
       addGeoJsonLayer('geojson/Polygon_VT_County_Boundaries.geojson', "Counties", 1, boundaryLayerControl, geoGroup, setDef.Counties);
       addGeoJsonLayer('geojson/Polygon_VT_Town_Boundaries.geojson', "Towns", 2, boundaryLayerControl, geoGroup, setDef.Towns);
       let res = addGeoJsonLayer('geojson/Polygon_VT_Lakes_Inventory.geojson', "Lakes", 3, boundaryLayerControl, geoGroup, setDef.Lakes, true);
-      //addGeoJsonLayer('geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 4, boundaryLayerControl, geoGroup);
+      addGeoJsonLayer('geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 4, boundaryLayerControl, geoGroup, setDef['Biophysical Regions']);
       //addGeoJsonLayer('geojson/surveyblocksWGS84.geojson', "Survey Blocks", 5, boundaryLayerControl, geoGroup);
       await res;
       console.log('addBoundaries res:', res);
@@ -305,18 +315,6 @@ function getIntersectingFeatures(e) {
   }
   return html;
 }
-
-/*
-  Fix eg. townName - remove semicolons, capitalize the first letter of each word
-*/
-function capitalize(name) {
-  name = name.replace(';','');
-  let ta = name.split(' ');
-  let tf = '';
-  for (const tp of ta) {tf += tp[0].toUpperCase() + tp.substring(1).toLowerCase() + ' ';}
-  name = tf.trim();
-  return name;
-}
 /*
   Lakes Surveyed (, Lakes Occupied)
 */
@@ -371,7 +369,7 @@ function getSignupLink(wbtextid, action='Volunteer') {
 */
 async function loonTownPopup(townName, layer) {
   let bd = defaultBoundaries;
-  townName = capitalize(townName)
+  townName = capitalize(townName);
   let search = `townName=${townName}`;
   let lwJson = await fetchCombined(search);
   console.log(`loonTownPopup(${layer.options.name}:${townName}) | fetchCombined:`, lwJson);
@@ -936,7 +934,7 @@ async function lakeDropDown(search) {
 
 let waterBodies = {}; var wbPromise = new Promise((resolve, reject) => {});
 async function waterBodyDropDown(search) {
-  wbPromise = fetchWaterBody(search);
+  wbPromise = fetchWaterBody(`orderBy=wbfullname&${search}`);
   let sel = document.getElementById('lakeVT');
   wbPromise.then(json => {
     json.rows.forEach(wb => {
@@ -959,7 +957,7 @@ async function getLoonSignups() {
   console.log('getLoonSignups', sheetSignUps);
   return sheetSignUps;
 }
-function putLoonSignups(signUps) {
+async function putLoonSignups(signUps) {
   geoGroup.eachLayer(layer => {
     //console.log(`putSignups found GeoJson layer:`, layer.options.name);
     if ('Lakes'==layer.options.name) {
@@ -968,7 +966,7 @@ function putLoonSignups(signUps) {
         //console.log(subLay.feature.properties);
         let lakeId = filterLakeName(subLay.feature.properties.LAKEID); //geoJson LAKEIDS are not clean
         let fullName = waterBodies[lakeId] ? waterBodies[lakeId].wbfullname : false; //here we match geoJson LAKEID to our db waterBodies - there are disagreements!
-        if (!fullName) {console.log('putLoonSigups LAKEID Not Found in waterBodies:', lakeId);}
+        if (!fullName) {console.log('putLoonSigups GeoJson LAKEID Not Found in waterBodies:', lakeId);}
         if (signUps.lake[fullName]) {
           //console.log('putLoonSignUps found signup for', fullName, lakeId, signUps[fullName], subLay.feature.properties);
           //Problem: there's a list of timeStamped adoption/declinations. We need a distilled list that processed those, here.
@@ -991,9 +989,10 @@ var strQueryParams = '';
 if (document.getElementById("leafletMap")) {
     console.log('Element leafletMap')
     window.addEventListener("load", async function() {
+      eleWait.style.display = 'block';
+
       console.log('window load event');
       const recQry = new URLSearchParams(window.location.search);
-      
       
       recQry.forEach((val, key) => {
         console.log('Query Param:', key, val);
@@ -1005,11 +1004,19 @@ if (document.getElementById("leafletMap")) {
       initMap();
       loonMap.options.minZoom = 7;
       loonMap.options.maxZoom = 17;
+      let lb = +recQry.get('lakeBoundary') || 1;
       let tb = +recQry.get('townBoundary') || 0;
       let cb = +recQry.get('countyBoundary') || 0;
+      let bb = +recQry.get('biophysicalBoundary') || 0;
       let sb = +recQry.get('stateBoundary') || 0;
-      let lb = +recQry.get('lakeBoundary') || 1;
-      defaultBoundaries = {State:sb,Counties:cb,Towns:tb,Lakes:lb};
+      let od = getStoreData('defaultBoundaries'); //retrieve localStorage selected boundaries
+      defaultBoundaries = od ? od : defaultBoundaries;
+      //defaultBoundaries = {State:sb,'Biophysical Regions':bb,Counties:cb,Towns:tb,Lakes:lb};
+      defaultBoundaries.sb = sb ? sb : defaultBoundaries.sb;
+      defaultBoundaries.bb = bb ? bb : defaultBoundaries.bb;
+      defaultBoundaries.sb = cb ? cb : defaultBoundaries.cb;
+      defaultBoundaries.sb = tb ? tb : defaultBoundaries.tb;
+      defaultBoundaries.sb = lb ? lb : defaultBoundaries.lb;
       await addBoundaries(defaultBoundaries);
       if (recQry.size > 0) {
         zoomTo(recQry);
@@ -1062,9 +1069,10 @@ if (document.getElementById("leafletMap")) {
         });
       }
 
-      wbPromise.then(json => { //must wait for waterBodies to load before putting signups
-        getLoonSignups().then(signUps => {
-            putLoonSignups(signUps);
+      wbPromise.then(async json => { //must wait for waterBodies to load before putting signups
+        getLoonSignups().then(async signUps => {
+            await putLoonSignups(signUps);
+            eleWait.style.display = 'none';
         })
       })
 

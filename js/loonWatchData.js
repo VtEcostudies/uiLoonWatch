@@ -3,7 +3,7 @@ const apiHost = config.apiHost;
 const apiProt = config.apiProt;
 
 export async function fetchLoonWatch(searchTerm) {
-    const url = `${config.apiProt}//${apiHost}/loonwatch?${searchTerm}`;
+    const url = `${apiProt}//${apiHost}/loonwatch?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
@@ -18,61 +18,58 @@ export async function fetchLoonWatch(searchTerm) {
         return new Error(err)
     }
 }
-export async function fetchWaterBody(searchTerm) {return await fetchInfo(0,searchTerm);}
-export async function fetchTown(searchTerm) {return await fetchInfo(1,searchTerm);}
-export async function fetchCounty(searchTerm) {return await fetchInfo(2,searchTerm);}
-async function fetchInfo(item=0, searchTerm) {
-    const items=['waterBody','town','county'];
-    const url = `${config.apiProt}//${apiHost}/info/${items[item]}?${searchTerm}`;
+export async function fetchWaterBody(searchTerm) {return await fetchInfo('waterBody',searchTerm);}
+export async function fetchTown(searchTerm) {return await fetchInfo('town',searchTerm);}
+export async function fetchCounty(searchTerm) {return await fetchInfo('county',searchTerm);}
+async function fetchInfo(route, searchTerm) {
+    const url = `${apiProt}//${apiHost}/info/${route}?${searchTerm=''}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
         //console.log(`loonWatchData::fetchInfo(${searchTerm}) RAW RESULT:`, res);
         let json = await res.json();
-        console.log(`loonWatchData::fetchInfo(${searchTerm}) JSON RESULT:`, json);
         json.query = enc;
+        console.log(`loonWatchData::fetchInfo(${route}, ${searchTerm}) JSON RESULT:`, json);
         return json;
     } catch (err) {
         err.query = enc;
-        console.log(`loonWatchData::fetchInfo(${searchTerm}) ERROR:`, err);
+        console.log(`loonWatchData::fetchInfo(${route}, ${searchTerm}) ERROR:`, err);
         return new Error(err)
     }
 }
-export async function fetchSurveyed(searchTerm) {return await fetchStatus(0,searchTerm);}
-export async function fetchOccupied(searchTerm) {return await fetchStatus(1,searchTerm);}
-export async function fetchCombined(searchTerm) {return await fetchStatus(2,searchTerm);}
+export async function fetchSurveyed(searchTerm) {return await fetchStatus('surveyed',searchTerm);}
+export async function fetchOccupied(searchTerm) {return await fetchStatus('occupied',searchTerm);}
+export async function fetchCombined(searchTerm) {return await fetchStatus('stats',searchTerm);}
 /*
     Fetch lake status by Lake/Town/County/Region
     Status types are 0:surveyed, 1:occupied, 2:combined stats
 */
-async function fetchStatus(type=0, searchTerm) {
-    const types = ['surveyed','occupied','stats'];
-    const url =  `${config.apiProt}//${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+async function fetchStatus(route='stats', searchTerm='') {
+    const url =  `${apiProt}//${apiHost}/loonwatch/${route}?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
         //console.log(`loonWatchData::fetchStatus(${searchTerm}) RAW RESULT:`, res);
         let json = await res.json();
-        console.log(`loonWatchData::fetchStatus(${searchTerm}) JSON RESULT:`, json);
         json.query = enc;
+        console.log(`loonWatchData::fetchStatus(${route}, ${searchTerm}) JSON RESULT:`, json);
         return json;
     } catch (err) {
         err.query = enc;
-        console.log(`loonWatchData::fetchStatus(${searchTerm}) ERROR:`, err);
+        console.log(`loonWatchData::fetchStatus(${route}, ${searchTerm}) ERROR:`, err);
         return new Error(err)
     }
 }
 
-export async function fetchCount(type=0, searchTerm) {
-    const types = ['count'];
-    const url =  `${config.apiProt}//${apiHost}/loonwatch/${types[type]}?${searchTerm}`;
+export async function fetchCount(searchTerm='') {
+    const url =  `${apiProt}//${apiHost}/loonwatch/count?${searchTerm}`;
     let enc = encodeURI(url);
     try {
         let res = await fetch(enc);
         //console.log(`loonWatchData::fetchCount(${searchTerm}) RAW RESULT:`, res);
         let json = await res.json();
-        console.log(`loonWatchData::fetchCount(${searchTerm}) JSON RESULT:`, json);
         json.query = enc;
+        console.log(`loonWatchData::fetchCount(${searchTerm}) JSON RESULT:`, json);
         return json;
     } catch (err) {
         err.query = enc;
@@ -81,7 +78,7 @@ export async function fetchCount(type=0, searchTerm) {
     }
 }
 
-export function loonWatchCountsChartCreate(searchTerm, htmlId) {
+export function loonWatchCountsChartCreate(searchTerm='', htmlId) {
     let ele = document.getElementById(htmlId);
     console.log('loonWatchCountsChartCreate', ele);
     //let par = ele.parentElement;
@@ -94,7 +91,7 @@ export function loonWatchCountsChartCreate(searchTerm, htmlId) {
 
 export function loonWatchCountsChart(searchTerm, htmlId) {
     return new Promise((resolve, reject) => {
-        fetchCount(0, searchTerm)
+        fetchCount(searchTerm)
             .then(res => {
                 if (res.rowCount) {
                     loonWatchChart(res.rows, htmlId, searchTerm);
@@ -112,7 +109,9 @@ export function loonWatchCountsChart(searchTerm, htmlId) {
 
 export async function loonWatchChart(data, htmlId, search) {
 
-    //console.log('loonWatchChart', htmlId, data);
+    console.log('loonWatchChart', htmlId, search, data);
+    let searchLevel = search.split('=')[0];
+    let searchValue = search.split('=')[1];
     const ele = document.getElementById(htmlId);
     ele.style.padding = "0px 0px 0px 0px";
     ele.style.margin = "0px 0px 0px 0px";
@@ -125,9 +124,9 @@ export async function loonWatchChart(data, htmlId, search) {
     filter = filter.replace('LIKE', '');
     filter = filter.replace('%', '');
     filter = filter.replace(/"/g, '');
-    filter = filter.replace('exportname', 'Water Body');
+    filter = filter.replace('exportname', 'Water Body ID:');
     filter = filter.replace('Name', '');
-    filter = filter.replace('=', 'of');
+    filter = filter.replace('=', '');
 
     // Declare the chart dimensions and margins.
     const width = parWid; //400;// - margin.left - margin.right; var minWidth = width; 
@@ -194,7 +193,8 @@ export async function loonWatchChart(data, htmlId, search) {
             .attr("fill", "currentColor")
             .attr("text-anchor", "start")
             .text(`LoonWatch Counts - ${filter}`))
-            .style("font", `${fontSize}px Arial`);
+            .style("font", `${fontSize}px Arial`)
+            .style("font-weight", "bold");
   
     // Append a path for the line.
     svg.append("path")
@@ -287,22 +287,25 @@ export async function loonWatchChart(data, htmlId, search) {
         .attr("cy", d => y(d.SubAdults))
         .attr("r", 3)
  
-    // append bar rectangles to the svg element - SurveyedBodies
-    var rect = svg.selectAll("rect")
-        .data(data)
-        .enter()
-        .append("rect")
-        .attr("x", d => {return x(new Date(d.year,0))-fontSize/4})
-        .attr("y", d => y(d.SurveyedBodies)) //the location of the TOP of the bar
-        .attr("width", function(d) { return fontSize/2; })
-        .attr("height", function(d) { return height - y(d.SurveyedBodies) - margin.bottom   ; }) //how far DOWN the bar must extend to reach the bottom axis
-        .style("fill", svColor)
-        .attr("fill-opacity", 0.3)
+    if ('exportname' != searchLevel) {
+        // append bar rectangles to the svg element - SurveyedBodies
+        var rect = svg.selectAll("rect")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("x", d => {return x(new Date(d.year,0))-fontSize/4})
+            .attr("y", d => y(d.SurveyedBodies)) //the location of the TOP of the bar
+            .attr("width", function(d) { return fontSize/2; })
+            .attr("height", function(d) { return height - y(d.SurveyedBodies) - margin.bottom   ; }) //how far DOWN the bar must extend to reach the bottom axis
+            .style("fill", svColor)
+            .attr("fill-opacity", 0.3)
+    }
     
     //rect.on("click", () => {console.log("rect click")});
     //rect.on("mouseover", (d,i) => {console.log("Surveyed Bodies",i.SurveyedBodies)})
 
     var legend_keys = ["Adults", "Chicks", "SubAdults", "Surveyed Lakes"]
+    if ('exportname'==searchLevel) {legend_keys = ["Adults", "Chicks", "SubAdults"]}
 
     var lineLegend = svg.selectAll(".lineLegend").data(legend_keys)
         .enter().append("g")

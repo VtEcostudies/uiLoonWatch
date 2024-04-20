@@ -8,8 +8,10 @@ export async function fetchTowns(searchTerm=false) {return await fetchInfo('town
 
 export async function fetchLakes(searchTerm=false) {return await fetchInfo('lake', searchTerm);}
 
+export async function fetchwaT(searchTerm=false) {return await fetchInfo('lake', searchTerm);}
+
 export async function fetchInfo(item='lake', searchTerm=false) {
-    const url = `${config.apiProt}//${apiHost}/info/${item}`;
+    const url = `${apiProt}//${apiHost}/info/${item}`;
     if (searchTerm) {url += `?${searchTerm}`;}
     let enc = encodeURI(url);
     try {

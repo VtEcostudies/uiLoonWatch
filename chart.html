@@ -1,21 +1,36 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+<link rel="stylesheet" href="css/chart-styles.css">
 
 <!-- Load d3.js -->
 <script src="https://d3js.org/d3.v6.js"></script>
 
 <script type="module" src="./js/chart.js"></script>
 
+<header>
+    <div class="row">
+        <div class="col-lg-10">
+            <h3 class="topMenu"><a href="index.html">Vermont LoonWatch Annual 1-day Census Counts</a></h3>
+        </div>
+    </div>
+</header>
 <!-- Create a div where the graph will take place -->
 <body>
     <div class="container">
         <div class="row">
+            <div class="col-lg-4 col-md-10 col-sm-12" id="chartDiv" style="width:600px;height:400px;">
+                <!--<div id="chartDiv" style="width:900px;height:600px;"></div>-->
+            </div>
+            <div class="col-lg-4 col-md-10 col-sm-12" id="listsDiv">
+                <label id="tableLbl"></label>
+                <table id="chartTbl" class="chart-table"></table>
+            </div>
             <!--
-            <div id="listsDiv" class="col-3"></div>
-            <div id="chartDiv" class="col-9" style="width:900px;height:600px;"></div>
-            -->
             <div id="chartDiv" class="col-12" style="width:900px;height:600px;"></div>
+            -->
         </div>
     </div>
 </body>

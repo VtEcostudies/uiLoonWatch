@@ -1,0 +1,19 @@
+.chart-table {
+    table-layout: auto !important;
+    overflow: auto !important;
+    display: block;
+    height: 500px;
+}
+
+.chart-table th {
+}
+
+.chart-table td {
+  padding-right: 8px;
+  text-align: left;
+  border: 1px solid;
+}
+
+.chart-table tr:nth-child(odd) {
+  background-color: #f2f2f2;
+}
