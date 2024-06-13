@@ -1,4 +1,4 @@
-import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchLoonWatch, fetchWaterBody, fetchBodyLake, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
 import { fetchTowns, fetchCounties, fetchLakes } from './vtInfo.js';
 
 export async function getDataDownloadData(item = {id:'LL',name:'Loon Location'}, type=0, searchTerm='') {
@@ -7,6 +7,7 @@ let json = {};
 switch(item.id) {
     case 'WB': json = await fetchWaterBody(searchTerm); break;
     case 'LL': json = await fetchLakes(searchTerm); break;
+    case 'BL': json = await fetchBodyLake(searchTerm); break;
     case 'SL': json = await fetchSurveyed(searchTerm); break;
     case 'OL': json = await fetchOccupied(searchTerm); break;
     case 'VT': json = await fetchTowns(searchTerm); break;

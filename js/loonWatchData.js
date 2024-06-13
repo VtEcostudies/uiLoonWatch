@@ -19,6 +19,7 @@ export async function fetchLoonWatch(searchTerm) {
     }
 }
 export async function fetchWaterBody(searchTerm) {return await fetchInfo('waterBody',searchTerm);}
+export async function fetchBodyLake(searchTerm) {return await fetchInfo('bodyLake',searchTerm);}
 export async function fetchTown(searchTerm) {return await fetchInfo('town',searchTerm);}
 export async function fetchCounty(searchTerm) {return await fetchInfo('county',searchTerm);}
 async function fetchInfo(route, searchTerm) {

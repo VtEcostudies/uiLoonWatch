@@ -11,22 +11,27 @@
 <script type="module" src="./js/chart.js"></script>
 
 <header>
-    <div class="row">
-        <div class="col-lg-10">
-            <h3 class="topMenu"><a href="index.html">Vermont LoonWatch Annual 1-day Census Counts</a></h3>
-        </div>
-    </div>
 </header>
 <!-- Create a div where the graph will take place -->
 <body>
     <div class="container">
         <div class="row">
-            <div class="col-lg-4 col-md-10 col-sm-12" id="chartDiv" style="width:600px;height:400px;">
+            <div class="col-12">
+                <h3 class="topMenu"><a href="index.html">Vermont LoonWatch Annual 1-day Census Counts</a></h3>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-8 col-md-10 col-sm-12" id="chartDiv" style="width:700px;height:500px;">
                 <!--<div id="chartDiv" style="width:900px;height:600px;"></div>-->
             </div>
             <div class="col-lg-4 col-md-10 col-sm-12" id="listsDiv">
-                <label id="tableLbl"></label>
-                <table id="chartTbl" class="chart-table"></table>
+                <div class="row" id="tableDiv">
+                    <label id="tableLbl"></label>
+                    <table id="chartTbl" class="chart-table"></table>
+                </div>
+                <div class="row" id="mapdiv">
+                    <svg id="chartSvg" width="100%" height="200"></svg>
+                </div>
             </div>
             <!--
             <div id="chartDiv" class="col-12" style="width:900px;height:600px;"></div>
