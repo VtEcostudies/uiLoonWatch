@@ -11,3 +11,11 @@ export function capitalize(name) {
     return name;
   }
   
+/* this one is better, and written later, so prolly replace the other with this  
+export function capitalize(string) {
+  return string.split(' ').map(token => token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()).join(' ');
+}
+*/
+export function lowerAlphaNumeric(string) {
+  return string.replace(/[.,\/#!$%\^&*;:{}=\-_`~()\?'"]/g, "").replace(/\s+/g, " ").toLowerCase();
+}

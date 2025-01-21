@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html  xmlns:xlink="http://www.w3.org/1999/xlink">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>LoonWatch Dashboard Chart</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="/css/chart-styles.css">
+    <link rel="stylesheet" href="/css/iframe.css">
+
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v6.js"></script>
+
+    <script type="module" src="/js/loonWatchChart.js"></script>
+</head>
+
+<!-- Create a div where the graph will take place -->
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-12 col-sm-12 col-12" id="chartDiv" style="width:700px;height:500px;">
+            </div>
+            <div class="col-lg-4 col-md-12 col-sm-12 col-12" id="listsDiv">
+                <div class="row" id="tableDiv">
+                    <label id="tableLbl"></label>
+                    <table id="chartTbl" class="chart-table"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

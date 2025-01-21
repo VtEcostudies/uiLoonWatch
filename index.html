@@ -26,32 +26,39 @@
 	<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<script src='https://unpkg.com/@turf/turf/turf.min.js'></script>
     <script src="https://d3js.org/d3.v6.js"></script>
-    <!--
-    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-    -->
     <script src="js/moment.min.js"></script>
-    <!--
-    <script src="../VAL_Web_Utilities/js/purify.min.js"></script>
-    -->
     <script type="module" src="js/lwCountsLeaflet.js"></script>
-    <script type="module">
-        import { zoomTo } from "./js/lwCountsLeaflet.js";
-    </script>
+    <script type="module" src="js/search.js"></script>
+    <script type="module" src="js/loonWatchTable.js"></script>
 
 </head>
 
 <header>
     <div class="row">
-        <div class="col-lg-10">
+        <div class="col-lg-10 offset-1">
             <h3 class="topMenu">Vermont LoonWatch Annual 1-day Census Counts</h3>
         </div>
-        <div class="col-lg-1" id="data-download">
-            <!--
-            <button class="btn btn-link" id="download-csv" type="submit" title="Download CSV">
-            <i class="fa fa-download" aria-hidden="true"></i>
-            CSV
-            </button>
-            -->
+    </div>
+    <div class="row">
+        <div class="col-lg-2 col-md-4 col-sm-4 col-6">
+            <button id="stateVT" class="map-button">State</button>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-4 col-6">
+            <select id="countyVT" class="map-button">
+                <option value="default" disabled selected>County...</option>
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-4 col-6">
+            <select id="townVT" class="map-button">
+                <option value="default" disabled selected>Town...</option>
+            </select>
+        </div>
+        <div class="col-lg-4 col-md-8 col-sm-12 col-12">
+            <select id="lakeVT" class="map-button">
+                <option value="default" disabled selected>Lake...</option>
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-4 col-6" id="data-download">
             <select id="download-item"  class="map-button">
                 <option value="default" disabled selected>Download CSV</option>
                 <option value="LL">Loon Lakes</option>
@@ -66,45 +73,34 @@
     </div>
     <hr>
 </header>
-<!--
-<button onclick="createBarGraph2()">Bind Data</button>
-<svg id="bargraph2" width="400" height="90" ></svg>
--->
 
 <body>
-    <div class="container">
-        <div id="leafletMap" class="row">
-            <div id="loonWatchMap" class="tabContentBot"style="height:600px;width:100%;overflow:hidden;">
-                <div id="wait-overlay">
-                    <i id="wait-icon" class="fa fa-spinner fa-spin" style="font-size:60px;"></i>
+    <div id="leafletMap" class="row">
+
+        <div id="loonWatchMap" class="col-lg-6  col-12 tabContentBot"style="height:600px;overflow:hidden;">
+            <div id="wait-overlay">
+                <i id="wait-icon" class="fa fa-spinner fa-spin" style="font-size:60px;"></i>
+            </div>
+            <!--
+            <button id="zoomVT" class="map-button">Zoom VT</button>
+            -->
+        </div>
+
+        <div class="col-lg-6 col-12" id="statsDiv">
+            <div class="row">
+                <div class="col-12" id="chartDiv" style="width:700px;height:500px;">
                 </div>
-                <button id="zoomVT" class="map-button">Zoom VT</button>
-                <select id="townVT" class="map-button">
-                    <option value="default" disabled selected>Towns...</option>
-                </select>
-                <select id="lakeVT" class="map-button">
-                    <option value="default" disabled selected>Lakes...</option>
-                </select>
+            </div>
+            <div class="row">
+                <div class="col-12" id="listsDiv">
+                    <div class="row" id="tableDiv">
+                        <label id="tableLbl"></label>
+                        <table id="chartTbl" class="chart-table"></table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div>
-        <svg id="chartSvg" width="100%" height="400"></svg>
+
     </div>
 </body>
 </html>
-<script> 
-    function createBarGraph2() {
-        var arr = [13, 8, 3, 2, 2];
-        d3.select("#bargraph2")
-          .selectAll("rect")
-          .data(arr)
-          .enter()
-          .append("rect")
-          .attr("height", 10)
-          .attr("width", (d) => d * (400/13))
-          .attr("x", 0)
-          .attr("y", (d, i) => i * 20)
-          .attr("fill", "pink");
-    }
-</script>

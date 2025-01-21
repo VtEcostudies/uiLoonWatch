@@ -1,4 +1,4 @@
-import { fetchLoonWatch, fetchWaterBody, fetchBodyLake, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchLoonWatch, fetchWaterBody, fetchBodyLake, fetchBodyLakeGeo, fetchOccupied, fetchSurveyed } from './loonWatchData.js';
 import { fetchTowns, fetchCounties, fetchLakes } from './vtInfo.js';
 
 export async function getDataDownloadData(item = {id:'LL',name:'Loon Location'}, type=0, searchTerm='') {

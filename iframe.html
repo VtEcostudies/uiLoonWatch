@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html  xmlns:xlink="http://www.w3.org/1999/xlink">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 	<meta charset="utf-8"/>
+	<meta http-equiv="pragma" content="no-cache" />
+
+    <title>LoonWatch Dashboard</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="/css/iframe.css">
+
+    <script type="module" src="/js/iframe.js"></script>
+</head>
+
+<header id="header">
+    <iframe id="search" src="iframe/search.html"></iframe>
+</header>
+
+<body>
+    <div class="row">
+        <div class="col-lg-5">
+            <iframe id="map-frame" src="/iframe/map.html" onload="this.style.height=(this.contentWindow.document.body.scrollHeight+20)+'px';"></iframe>
+        </div>
+        <div class="col-lg-7">
+            <iframe id="chart-frame" src="/iframe/chart.html" ></iframe>
+        </div>
+    </div>
+</body>
+</html>
+<script>
+function mapSource(src) {
+    let frame = document.getElementById("map-frame");
+    console.log('iframe.html=>mapSource:', src);
+    if (frame) {frame.src = src;}
+    else (console.log('iframe.html=>mapSource map iframe NOT found'))
+}
+function chartSource(src) {
+    let frame = document.getElementById("chart-frame");
+    console.log('iframe.html=>chartSource:', src);
+    if (frame) {frame.src = src;}
+    else (console.log('iframe.html=>mapSource map iframe NOT found'))
+}
+</script>

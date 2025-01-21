@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html  xmlns:xlink="http://www.w3.org/1999/xlink">
+<head>
+    <meta charset="utf-8">
+
+    <title>LoonWatch Dashboard Search</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="/css/iframe.css">
+    <link rel="stylesheet" href="/css/search.css">
+
+    <script type="module" src="/js/search.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-10 offset-1">
+                <h3 class="topMenu">Vermont LoonWatch Annual 1-day Census Counts</h3>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4 col-md-8 col-sm-12 col-12">
+                <select id="lakeVT" class="map-button">
+                    <option value="default" disabled selected>Lakes...</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-4 col-6">
+                <select id="townVT" class="map-button">
+                    <option value="default" disabled selected>Towns...</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-4 col-6">
+                <select id="countyVT" class="map-button">
+                    <option value="default" disabled selected>Counties...</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4 col-sm-4 col-6" id="data-download">
+                <select id="download-item"  class="map-button">
+                    <option value="default" disabled selected>Download CSV</option>
+                    <option value="LL">Loon Lakes</option>
+                    <option value="SL">Surveyed Lakes</option>
+                    <option value="OL">Occupied Lakes</option>
+                    <option value="WB">Water Bodies</option>
+                    <option value="BL">Bodies/Lakes</option>
+                    <option value="VT">Vermont Towns</option>
+                    <option value="VC">Vermont Counties</option>
+                </select>
+            </div>
+        </div>
+    </div>
+<hr>
+</body>
+</html>

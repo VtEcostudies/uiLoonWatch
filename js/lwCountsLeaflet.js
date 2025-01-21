@@ -1,7 +1,8 @@
 /*
   Load a json array from apiLoonWatch and populate the map with point occurrence data.
 */
-import { fetchLoonWatch, fetchWaterBody, fetchOccupied, fetchSurveyed, fetchCombined, loonWatchCountsChart, loonWatchCountsChartCreate} from './loonWatchData.js';
+import { fetchLoonWatch, fetchWaterBody, fetchBodyLake, fetchBodyLakeGeo, fetchOccupied, fetchSurveyed, fetchCombined } from './loonWatchData.js';
+import { loonWatchCountsChart, loonWatchCountsChartReplace } from './loonWatchChart.js';
 import { capitalize } from './utils.js';
 import { fetchTowns, fetchLakes } from './vtInfo.js';
 import { getDataDownloadData } from './download.js';
@@ -135,28 +136,62 @@ function trackSelectedBoundaries(layer, add=1) {
   defaultBoundaries[layer.options.name] = +add; //set the boundaryLayer reference object to reflect newly selected layer
   setStoreData('defaultBoundaries', defaultBoundaries);
 }
+function getControlBoxesByName(control) {
+  let container = control.getContainer();
+  let chekBoxes = container.querySelectorAll(".leaflet-control-layers-selector");
+  let boxes = {};
+  for (const box of chekBoxes) {
+    let parent = box.parentElement;
+    let children = parent.children; //leaflet controls have a span wrapped around an input checkbox and a span label
+    boxes[children[1].innerHTML.trim()]=box;
+  }
+  return boxes;
+}
 /*
   Fired when an overlay is selected through a layer control. Bring clicked layer to the front, then bring Lakes to the front.
+  New: make State/Counties/Towns exclusive, radio-like buttons
+  Bug: manual remove/uncheck layers doesn't fully work. Tried stopPropagation. When checking lower array-elements, uppers get a spurious
+       new overlayAdd event. Guess: unchecking fires the event on the unchecked item.
+       Tried using our own, custom layer array. Same behavior. Looks like a Leaflet bug.
 */
 function MapOverlayAdd(e) {
-  //defaultBoundaries[e.layer.options.name] = 1; //set the boundaryLayer reference object to reflect newly selected layer
   trackSelectedBoundaries(e.layer, 1);
-  console.log('MapOverlayAdd | Bring', e.layer.options.name, 'to the front.', defaultBoundaries);
-  if (typeof e.layer.bringToFront === 'function') {e.layer.bringToFront();} //pull the just-added layer to front
+  //console.log('MapOverlayAdd | Bring', e.layer.options.name, 'to the front.', defaultBoundaries);
+  //let boxes = getControlBoxesByName(boundaryLayerControl);
+  if (typeof e.layer.bringToFront === 'function') {
+    e.layer.bringToFront(); //bring the just-added layer to front
+    //boxes[e.layer.options.name].checked = true; //check that layer's box  
+  }
+/*
+  geoLay['Lakes'].bringToFront;
+  for (const layNam in geoLay) {
+    if (layNam==e.layer.options.name) {
+      console.log('matched layer list to added layer:', layNam);
+    } else {
+      loonMap.removeLayer(geoLay[layNam]);
+      boxes[layNam].checked = false; //un-check that layer's box
+    }
+  }
+*/
   if (geoGroup) {
-    geoGroup.eachLayer(layer => {
+    geoGroup.eachLayer(async layer => {
       if ('Lakes' == layer.options.name) {
         console.log('MapOverlayAdd | Bring', layer.options.name, 'to the front.');
-        layer.bringToFront();
+        await layer.bringToFront();
+      } else if (e.layer.options.name != layer.options.name) {
+        /*
+        console.log('MapOverlayAdd remove other layers: Added:', e.layer.options.name, 'Remove:', layer.options.name);
+        await loonMap.removeLayer(layer); //remove layer from map
+        boxes[layer.options.name].checked = false; //un-check that layer's box
+        */
       }
    })
   }
 }
 /* Fired when an overlay is de-selected through a layer control. */
 function MapOverlayRem(e) {
-  //defaultBoundaries[e.layer.options.name] = 0; //set the boundaryLayer reference object to reflect newly removed layer
   trackSelectedBoundaries(e.layer, 0);
-  console.log('MapOverlayRem', e.layer.options.name, defaultBoundaries);
+  //console.log('MapOverlayRem', e.layer.options.name, defaultBoundaries);
 }
 
 function onZoomEnd(e) {
@@ -187,10 +222,9 @@ async function addBoundaries(setDef=false) {
   if (!setDef) {setDef = defaultBoundaries;}
   
   if (boundaryLayerControl === false) {
-      boundaryLayerControl = L.control.layers().addTo(loonMap);
+      boundaryLayerControl = L.control.layers(null,null,{collapsed:true}).addTo(loonMap);
   } else {
       console.log('boundaryLayerControl already added.')
-      //return;
   }
   //boundaryLayerControl.setPosition("bottomright");
 
@@ -198,12 +232,12 @@ async function addBoundaries(setDef=false) {
 
   try {
       geoGroup = new L.FeatureGroup();
-      addGeoJsonLayer('geojson/Polygon_VT_State_Boundary.geojson', "State", 0, boundaryLayerControl, geoGroup, setDef.State);
-      addGeoJsonLayer('geojson/Polygon_VT_County_Boundaries.geojson', "Counties", 1, boundaryLayerControl, geoGroup, setDef.Counties);
-      addGeoJsonLayer('geojson/Polygon_VT_Town_Boundaries.geojson', "Towns", 2, boundaryLayerControl, geoGroup, setDef.Towns);
-      let res = addGeoJsonLayer('geojson/Polygon_VT_Lakes_Inventory.geojson', "Lakes", 3, boundaryLayerControl, geoGroup, setDef.Lakes, true);
-      addGeoJsonLayer('geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 4, boundaryLayerControl, geoGroup, setDef['Biophysical Regions']);
-      //addGeoJsonLayer('geojson/surveyblocksWGS84.geojson', "Survey Blocks", 5, boundaryLayerControl, geoGroup);
+      addGeoJsonLayer('/geojson/Polygon_VT_State_Boundary.geojson', "State", 0, boundaryLayerControl, geoGroup, setDef.State);
+      addGeoJsonLayer('/geojson/Polygon_VT_County_Boundaries.geojson', "Counties", 1, boundaryLayerControl, geoGroup, setDef.Counties);
+      addGeoJsonLayer('/geojson/Polygon_VT_Town_Boundaries.geojson', "Towns", 2, boundaryLayerControl, geoGroup, setDef.Towns);
+      let res = addGeoJsonLayer('/geojson/Polygon_VT_Lakes_Inventory.geojson', "Lakes", 3, boundaryLayerControl, geoGroup, setDef.Lakes, true);
+      addGeoJsonLayer('/geojson/Polygon_VT_Biophysical_Regions.geojson', "Biophysical Regions", 4, boundaryLayerControl, geoGroup, setDef['Biophysical Regions']);
+      //addGeoJsonLayer('/geojson/surveyblocksWGS84.geojson', "Survey Blocks", 5, boundaryLayerControl, geoGroup);
       await res;
       console.log('addBoundaries res:', res);
       return;
@@ -213,7 +247,7 @@ async function addBoundaries(setDef=false) {
     return;
   }
 }
-
+let geoLay = {};
 function addGeoJsonLayer(file="test.geojson", layerName="Test", layerId = 0, layerControl=null, layerGroup=null, addToMap=false, toFront=false) {
   var layer = null;
   return new Promise((resolve, reject) => {
@@ -228,6 +262,7 @@ function addGeoJsonLayer(file="test.geojson", layerName="Test", layerId = 0, lay
       if (toFront) {layer.bringToFront();} else {layer.bringToBack();}
       if (layerControl) {layerControl.addOverlay(layer, layerName);}
       if (layerGroup) {layerGroup.addLayer(layer);}
+      geoLay[layerName]=layer;
       resolve(layer);
     });
   });
@@ -322,7 +357,7 @@ async function loonLakePopup(lakeName, layer) {
   lakeName = lakeName.replace(';','').toUpperCase();
   let search = `exportname=${lakeName}`; //VT water bodies sometimes don't match loon exportName, but we can't add % because eg. BROWN% gets 4 lakes
   let lwJson = await fetchLoonWatch(search);
-  console.log(`loonLakePopup(${layer.options.name}:${lakeName}) | fetchLoonWatch:`, lwJson);
+  console.log(`loonLakePopup(${layer.options.name}:${lakeName})=>fetchLoonWatch:`, lwJson);
   let popHt = `<b><u>${lakeName}</u></b>`;
   if (lwJson.rowCount) {
     popHt += `: ${lwJson.rows[0].locationarea} acres<br>`
@@ -336,9 +371,10 @@ async function loonLakePopup(lakeName, layer) {
       popHt += '<br>';
     }
   } else {
-    let wbJson = await fetchWaterBody(`wbtextid=${lakeName}`);
+    let wbJson = await fetchBodyLake(`wbtextid=${lakeName}`);
+    console.log(`loonLakePopup(${layer.options.name}:${lakeName})=>fetchBodyLake:`, wbJson);
     if (1 == wbJson.rowCount) {
-      popHt += `: ${wbJson.rows[0].wbarea} acres<br>`;
+      popHt += `: ${wbJson.rows[0].gisacres.toFixed(1)} acres<br>`;
     }
     popHt += 'No LoonWatch Surveys found.'
   }
@@ -379,7 +415,7 @@ async function loonTownPopup(townName, layer) {
     popHtm = '';
     popHtm += ` Water Bodies</u>:<br><table class="poptbl"><tr><th>Name</th><th>Area</th><th>Surveyed</th><th>Occupied</th></tr>`;
     for (const row of lwJson.rows) {
-      let lakeArea = row.wbarea ? row.wbarea : '';
+      let lakeArea = row.gisacres ? row.gisacres.toFixed(1) : '';
       if (row.lakeName) {
         let lastSurveyed = row.lastSurveyed ? row.lastSurveyed : '';
         let lastOccupied = row.lastOccupied ? row.lastOccupied : '';
@@ -494,17 +530,23 @@ function onEachFeature(feature, layer) {
         if ('Lakes' == layer.options.name || feature.properties.LAKEID) {
           let lakeId = filterLakeName(feature.properties.LAKEID);
           console.log('onEachFeature=>layer.onclick=>feature.properties.LAKEID', lakeId);
-          loonChartPopup('lake', lakeId, layer);
+          //loonChartPopup('lake', lakeId, layer);
+          window.parent.postMessage({source:'loonwatch-search', params:{'LAKEID':lakeId}})
         }
         if ('Towns' == layer.options.name || feature.properties.TOWNNAME) {
           //loonChartPopup('town', feature.properties.TOWNNAME, layer);
-          loonTownPopup(feature.properties.TOWNNAME, layer);
+          //loonTownPopup(feature.properties.TOWNNAME, layer);
+          let townName = capitalize(feature.properties.TOWNNAME);
+          window.parent.postMessage({source:'loonwatch-search', params:{'townName':townName}})
         }
         if ('Counties' == layer.options.name || feature.properties.CNTYNAME) {
-          loonChartPopup('county', feature.properties.CNTYNAME, layer);
+          //loonChartPopup('county', feature.properties.CNTYNAME, layer);
+          let cntyName = capitalize(feature.properties.CNTYNAME);
+          window.parent.postMessage({source:'loonwatch-search', params:{'countyName':cntyName}})
         }
         if ('State' == layer.options.name) {
-          loonChartPopup(false, false, layer);
+          //loonChartPopup(false, false, layer);
+          window.parent.postMessage({source:'loonwatch-search', params:{'state':'Vermont'}})
         }
     });
     layer.on('contextmenu', function (event) {
@@ -780,7 +822,7 @@ async function getGeoJsonGroupFromName(group) {
   if (geoGroup) {
     for await (const [index, layer] of Object.entries(geoGroup._layers)) {
       console.log('geoGroup Layer:', layer);
-      console.log('getGeoJsonFeatureByGroupNameAndFeatureName found GeoJson layer', layer, layer.options.name,group.slice(0,5).toUpperCase(),layer.options.name.slice(0,5).toUpperCase());
+      console.log('getGeoJsonGroupFromName found GeoJson layer', layer, layer.options.name,group.slice(0,5).toUpperCase(),layer.options.name.slice(0,5).toUpperCase());
       if (group.toUpperCase()==layer.options.name.toUpperCase()) {
         return layer;
       }
@@ -871,12 +913,12 @@ function initMap() {
     addMapCallbacks();
 }
 
-export async function zoomTo(rawQry) { //pass a literal JSON object, not an objUrlParam...
-  console.log('zoomTo', rawQry);
-  let objQry = new URLSearchParams(rawQry);
-  let lakeId = objQry.get('LAKEID');
-  let townId = objQry.get('town') || objQry.get('townName') || objQry.get('Town') || objQry.get('TownName');
-  let cntyId = objQry.get('county') || objQry.get('countyName') || objQry.get('County') || objQry.get('CountyName');
+export async function zoomTo(objQry) { //pass a literal JSON object, not an objUrlParam...
+  console.log('zoomTo', objQry);
+  let reqQry = new URLSearchParams(objQry);
+  let lakeId = reqQry.get('LAKEID');
+  let townId = reqQry.get('town') || reqQry.get('townName') || reqQry.get('Town') || reqQry.get('TownName');
+  let cntyId = reqQry.get('county') || reqQry.get('countyName') || reqQry.get('County') || reqQry.get('CountyName');
   let typeId; let itemId;
   if (lakeId) {typeId='Lakes'; itemId=lakeId;}
   else if (townId) {typeId='Towns'; itemId=townId;}
@@ -905,52 +947,7 @@ export async function zoomTo(rawQry) { //pass a literal JSON object, not an objU
     }
   }
 }
-
-async function townDropDown(search) {
-  let json = await fetchTowns(search); //an array of towns
-  let sel = document.getElementById('townVT');
-  json.rows.forEach(town => {
-    if ('Unknown' != town.townName) {
-      let opt = document.createElement('option');
-      opt.innerHTML = town.townName;
-      opt.value = town.townName;
-      sel.appendChild(opt)
-    }
-  });
-}
-
-async function lakeDropDown(search) {
-  let json = await fetchLakes(search); //an array of lakes
-  let sel = document.getElementById('lakeVT');
-  json.rows.forEach(lake => {
-    if ('Unknown' != lake.locationname) {
-      let opt = document.createElement('option');
-      opt.innerHTML = lake.locationname;
-      opt.value = lake.exportname;
-      sel.appendChild(opt)
-    }
-  });
-}
-
-let waterBodies = {}; var wbPromise = new Promise((resolve, reject) => {});
-async function waterBodyDropDown(search) {
-  wbPromise = fetchWaterBody(`orderBy=wbfullname&${search}`);
-  let sel = document.getElementById('lakeVT');
-  wbPromise.then(json => {
-    json.rows.forEach(wb => {
-      if ('Unknown' != wb.wbtextid) {
-        waterBodies[wb.wbtextid] = wb; 
-        let opt = document.createElement('option');
-        opt.innerHTML = `${wb.wbfullname}`;
-        opt.value = wb.wbtextid;
-        sel.appendChild(opt)
-      }
-    });
-  }).catch(err => {
-    console.log('waterBodyDropDown=>fetchWaterBody ERROR', err);
-  })
-}
-
+let waterBodies = {};
 async function getLoonSignups() {
   //get an object of sheetSignUps with an array of signup events containing: email, lakeId, and date
   sheetSignUps = await getLoonWatchSignups();
@@ -1029,52 +1026,22 @@ if (document.getElementById("leafletMap")) {
         });
       }
 
-      let eleTown = document.getElementById("townVT");
-      if (eleTown) {
-        townDropDown();
-        eleTown.addEventListener("change", (e) => {
-          let townName = eleTown.selectedOptions[0].value;
-          console.log('townVT change', townName);
-          //this.location.assign(`${uiHost}?townName=${townName}&townBoundary=1`);
-          let parm = {'townName':townName};
-          let urlParm =  new URLSearchParams(parm);
-          zoomTo(parm);
-          eleTown.value = 'default';
-        });
+      let wb = await fetchWaterBody(`orderBy=wbfullname`);
+      for (const row of wb.rows) { //build object keyed on lakeId
+        waterBodies[row.wbtextid]=row;
       }
-
-      let eleLake = document.getElementById("lakeVT");
-      if (eleLake) {
-        //lakeDropDown();
-        waterBodyDropDown();
-        eleLake.addEventListener("change", (e) => {
-          let lakeId = eleLake.selectedOptions[0].value;
-          console.log('lakeVT change', lakeId);
-          //this.location.assign(`${uiHost}?LAKEID=${lakeId}`);
-          let parm = {'LAKEID':lakeId};
-          let urlParm =  new URLSearchParams(parm);
-          zoomTo(parm);
-          eleLake.value = 'default';
-        });
-      }
-
-      let eleItm = document.getElementById("download-item");
-      if (eleItm) {
-        eleItm.addEventListener("change", function(e) {
-          console.log(e.target);
-          let item = eleItm.selectedOptions[0].value;
-          let name = eleItm.selectedOptions[0].innerText;
-          getDataDownloadData({id: item, name: name}, 0);
-          eleItm.value = 'default';
-        });
-      }
-
-      wbPromise.then(async json => { //must wait for waterBodies to load before putting signups
-        getLoonSignups().then(async signUps => {
-            await putLoonSignups(signUps);
-            eleWait.style.display = 'none';
-        })
-      })
+      let signUps = await getLoonSignups();
+      await putLoonSignups(signUps);
+      eleWait.style.display = 'none';
 
     }); //end window.onload
 }
+
+//NEW: set map view/zoom from windows postMessages...
+window.addEventListener("message", e => {
+  if ('loonwatch-search'==e.data.source || 'loonwatch-map'==e.data.source) {
+    console.log('lwCountsLeaflet.js received message', e.data);
+    if (e.data.params.state) {zoomVT();}
+    else {zoomTo(e.data.params)};
+  }
+})
